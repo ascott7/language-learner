@@ -1,5 +1,6 @@
 "use client";
 
+import { useShallow } from "zustand/react/shallow";
 import { useSessionStore, selectRatingBreakdown } from "@/stores/session-store";
 
 interface SessionSummaryProps {
@@ -17,7 +18,7 @@ export function SessionSummary({
 }: SessionSummaryProps) {
   const story = useSessionStore((s) => s.story);
   const wordRatings = useSessionStore((s) => s.wordRatings);
-  const breakdown = useSessionStore(selectRatingBreakdown);
+  const breakdown = useSessionStore(useShallow(selectRatingBreakdown));
   const totalRated = Object.keys(wordRatings).length;
 
   const understood = breakdown.good + breakdown.easy;

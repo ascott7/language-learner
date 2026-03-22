@@ -1,5 +1,6 @@
 "use client";
 
+import { useShallow } from "zustand/react/shallow";
 import type { DifficultyFeedback } from "@/types";
 import { useSessionStore, selectRatingBreakdown } from "@/stores/session-store";
 
@@ -16,7 +17,7 @@ interface StoryFeedbackProps {
 export function StoryFeedback({ onSubmit }: StoryFeedbackProps) {
   const difficultyFeedback = useSessionStore((s) => s.difficultyFeedback);
   const setDifficultyFeedback = useSessionStore((s) => s.setDifficultyFeedback);
-  const breakdown = useSessionStore(selectRatingBreakdown);
+  const breakdown = useSessionStore(useShallow(selectRatingBreakdown));
 
   return (
     <div className="max-w-lg mx-auto px-4 py-10 text-center">

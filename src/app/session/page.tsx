@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useShallow } from "zustand/react/shallow";
 import { useSessionStore, selectRatingBreakdown } from "@/stores/session-store";
 import { StoryDisplay } from "@/components/StoryDisplay";
 import { StoryFeedback } from "@/components/StoryFeedback";
@@ -30,7 +31,7 @@ export default function SessionPage() {
   const difficultyFeedback = useSessionStore((s) => s.difficultyFeedback);
   const newWords = useSessionStore((s) => s.newWords);
   const reset = useSessionStore((s) => s.reset);
-  const breakdown = useSessionStore(selectRatingBreakdown);
+  const breakdown = useSessionStore(useShallow(selectRatingBreakdown));
 
   const [newLevel, setNewLevel] = useState(targetLevel);
   const [submitting, setSubmitting] = useState(false);
