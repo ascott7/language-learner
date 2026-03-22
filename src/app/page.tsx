@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DeckSelector } from "@/components/DeckSelector";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -24,6 +25,12 @@ export default function Home() {
         </p>
 
         <DeckSelector onStartSession={handleStartSession} />
+
+        <div className="mt-6 text-center">
+          <Link href="/progress" className="text-sm text-gray-400 hover:text-gray-600">
+            View progress →
+          </Link>
+        </div>
       </div>
     </main>
   );
