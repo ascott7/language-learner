@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-# Load .env.local so we can validate required vars before starting
+# Load .env.local — values with spaces must be double-quoted in the file
+# e.g. ANKI_DB_PATH="/path/with spaces/collection.anki2"
 if [ -f .env.local ]; then
   set -o allexport
-  source .env.local
+  # shellcheck disable=SC1091
+  source .env.local || {
+    echo "Error: Failed to parse .env.local — check that values containing spaces are double-quoted"
+    exit 1
+  }
   set +o allexport
+else
+  echo "Error: .env.local not found. Copy .env.local.example and fill in the values."
+  exit 1
 fi
 
 # Validate required vars
