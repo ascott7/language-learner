@@ -39,7 +39,16 @@ def open_collection() -> Generator[Collection, None, None]:
             detail=f"Anki collection not found at {ANKI_DB_PATH}. "
             "Mount your collection.anki2 file into the container.",
         )
-    col = Collection(ANKI_DB_PATH)
+    try:
+        col = Collection(ANKI_DB_PATH)
+    except Exception as e:
+        msg = str(e)
+        if "already open" in msg or "media currently syncing" in msg:
+            raise HTTPException(
+                status_code=503,
+                detail="Anki desktop is open and has locked the database. Close Anki and restart the service.",
+            )
+        raise HTTPException(status_code=500, detail=f"Failed to open collection: {msg}")
     try:
         yield col
     finally:
