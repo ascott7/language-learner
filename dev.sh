@@ -3,7 +3,9 @@ set -e
 
 # Load .env.local so we can validate required vars before starting
 if [ -f .env.local ]; then
-  export $(grep -v '^#' .env.local | grep -v '^$' | xargs)
+  set -o allexport
+  source .env.local
+  set +o allexport
 fi
 
 # Validate required vars
