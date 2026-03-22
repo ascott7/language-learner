@@ -11,9 +11,17 @@ interface WordTokenProps {
   sentence: string; // surrounding sentence for definition lookup
 }
 
+const EASE_CLASSES: Record<AnkiEase, string> = {
+  1: "bg-red-100 border-b-2 border-red-400",
+  2: "bg-orange-100 border-b-2 border-orange-400",
+  3: "bg-blue-100 border-b-2 border-blue-400",
+  4: "bg-green-100 border-b-2 border-green-400",
+};
+
 export function WordToken({ word, card, sentence }: WordTokenProps) {
   const [open, setOpen] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const rateWord = useSessionStore((s) => s.rateWord);
   const addNewWord = useSessionStore((s) => s.addNewWord);
@@ -33,9 +41,9 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
 
     if (isFlashcard) {
       if (rating) {
-        return `${base} bg-green-100 border-b-2 border-green-400`;
+        return `${base} ${EASE_CLASSES[rating.ease]}`;
       }
-      return `${base} bg-amber-100 border-b-2 border-amber-400 hover:bg-amber-200`;
+      return `${base} bg-indigo-100 border-b-2 border-indigo-300 hover:bg-indigo-200`;
     }
 
     if (isUnknown) {
@@ -73,50 +81,41 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          deckName,
           word: word.text,
           sentence,
           language,
-          lookupOnly: true, // signal to route to only look up, not add yet
+          lookupOnly: true,
         }),
       });
 
       if (res.ok) {
-        const data = (await res.json()) as {
-          baseForm: string;
-          definition: string;
-        };
-        updateNewWord(word.index, {
-          baseForm: data.baseForm,
-          definition: data.definition,
-        });
+        const data = (await res.json()) as { baseForm: string; definition: string };
+        updateNewWord(word.index, { baseForm: data.baseForm, definition: data.definition });
       }
     } finally {
       setIsLookingUp(false);
     }
   }
 
-  async function handleAddToAnki() {
-    if (!deckName || !newWordEntry) return;
+  async function handleSaveToAnki(front: string, back: string) {
+    if (!deckName || !newWordEntry || isSaving) return;
+    setIsSaving(true);
 
     try {
       const res = await fetch("/api/anki/add-note", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deckName,
-          word: word.text,
-          sentence,
-          language,
-        }),
+        body: JSON.stringify({ deckName, front, back }),
       });
 
       if (res.ok) {
-        updateNewWord(word.index, { confirmed: true });
+        updateNewWord(word.index, { confirmed: true, baseForm: front, definition: back });
         setOpen(false);
       }
     } catch {
       // Keep popover open on error
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -149,11 +148,12 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
       {open && !isFlashcard && (
         <UnknownWordPopover
           word={word}
-          isAdding={isLookingUp}
+          isLookingUp={isLookingUp}
+          isSaving={isSaving}
           isAdded={newWordEntry?.confirmed ?? false}
           baseForm={newWordEntry?.baseForm}
           definition={newWordEntry?.definition}
-          onAdd={handleAddToAnki}
+          onSave={handleSaveToAnki}
           onClose={() => setOpen(false)}
         />
       )}

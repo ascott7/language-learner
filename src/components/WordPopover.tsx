@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AnkiCard, AnkiEase, StoryWord } from "@/types";
 import { cardBack } from "@/types";
 
@@ -29,18 +29,19 @@ export function FlashcardPopover({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleMouseDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose();
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
 
   return (
     <div
       ref={ref}
+      onClick={(e) => e.stopPropagation()}
       className="absolute z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-72 top-full left-1/2 -translate-x-1/2 mt-2"
     >
       <div className="flex justify-between items-start mb-2">
@@ -83,41 +84,54 @@ export function FlashcardPopover({
 
 interface UnknownWordPopoverProps {
   word: StoryWord;
-  isAdding: boolean;
+  isLookingUp: boolean;
+  isSaving: boolean;
   isAdded: boolean;
   baseForm?: string;
   definition?: string;
-  onAdd: () => void;
+  onSave: (front: string, back: string) => void;
   onClose: () => void;
 }
 
 export function UnknownWordPopover({
   word,
-  isAdding,
+  isLookingUp,
+  isSaving,
   isAdded,
   baseForm,
   definition,
-  onAdd,
+  onSave,
   onClose,
 }: UnknownWordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [editedFront, setEditedFront] = useState(baseForm ?? word.text);
+  const [editedBack, setEditedBack] = useState(definition ?? "");
+
+  // Sync editable fields when lookup completes
+  useEffect(() => {
+    if (baseForm) setEditedFront(baseForm);
+  }, [baseForm]);
+  useEffect(() => {
+    if (definition) setEditedBack(definition);
+  }, [definition]);
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleMouseDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose();
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
 
   return (
     <div
       ref={ref}
-      className="absolute z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-72 top-full left-1/2 -translate-x-1/2 mt-2"
+      onClick={(e) => e.stopPropagation()}
+      className="absolute z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-4 w-80 top-full left-1/2 -translate-x-1/2 mt-2"
     >
-      <div className="flex justify-between items-start mb-2">
+      <div className="flex justify-between items-start mb-3">
         <p className="font-semibold text-gray-900">{word.text}</p>
         <button
           onClick={onClose}
@@ -127,28 +141,38 @@ export function UnknownWordPopover({
         </button>
       </div>
 
-      {isAdding && !baseForm && (
-        <p className="text-sm text-gray-500 mb-2">Looking up definition…</p>
-      )}
-      {baseForm && (
-        <div className="mb-2">
-          <p className="text-xs text-gray-500">Dictionary form: {baseForm}</p>
-          {definition && (
-            <p className="text-sm text-gray-700 mt-1">{definition}</p>
-          )}
-        </div>
-      )}
-
-      {isAdded ? (
-        <p className="text-xs text-green-600 text-center">Added to deck ✓</p>
+      {isLookingUp && !baseForm ? (
+        <p className="text-sm text-gray-500 mb-3">Looking up definition…</p>
+      ) : isAdded ? (
+        <p className="text-xs text-green-600 text-center py-2">Added to deck ✓</p>
       ) : (
-        <button
-          onClick={onAdd}
-          disabled={isAdding}
-          className="w-full text-sm py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-lg transition-colors"
-        >
-          {isAdding ? "Adding…" : "Add to Anki deck"}
-        </button>
+        <>
+          <div className="mb-2">
+            <label className="block text-xs text-gray-500 mb-1">Dictionary form</label>
+            <input
+              type="text"
+              value={editedFront}
+              onChange={(e) => setEditedFront(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="block text-xs text-gray-500 mb-1">Definition</label>
+            <textarea
+              value={editedBack}
+              onChange={(e) => setEditedBack(e.target.value)}
+              rows={3}
+              className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
+            />
+          </div>
+          <button
+            onClick={() => onSave(editedFront, editedBack)}
+            disabled={isSaving || isLookingUp || !editedFront || !editedBack}
+            className="w-full text-sm py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-lg transition-colors"
+          >
+            {isSaving ? "Saving…" : "Add to Anki deck"}
+          </button>
+        </>
       )}
     </div>
   );
