@@ -52,7 +52,7 @@ def open_collection() -> Generator[Collection, None, None]:
     try:
         yield col
     finally:
-        col.close(save=True)
+        col.close()
 
 
 # ─── Request / Response Models ────────────────────────────────────────────────

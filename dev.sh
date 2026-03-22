@@ -38,21 +38,30 @@ BACKUP_PATH="${ANKI_DB_PATH_EXPANDED}.language-learner.bak"
 cp "$ANKI_DB_PATH_EXPANDED" "$BACKUP_PATH"
 echo "→ Backed up Anki collection to $(basename "$BACKUP_PATH")"
 
-# ─── Find a free port for the Anki service ────────────────────────────────────
-ANKI_SERVICE_PORT=$(python3 -c "
+# ─── Find a free port for the Anki service (prefer 5001, avoid macOS 5000) ────
+find_free_port() {
+  local start=${1:-5001}
+  python3 -c "
 import socket
-s = socket.socket()
-s.bind(('', 0))
-print(s.getsockname()[1])
-s.close()
-")
+for port in range(${start}, ${start} + 100):
+    try:
+        s = socket.socket()
+        s.bind(('', port))
+        s.close()
+        print(port)
+        break
+    except OSError:
+        continue
+"
+}
 export ANKI_SERVICE_PORT
+ANKI_SERVICE_PORT=$(find_free_port 5001)
 export ANKI_SERVICE_URL="http://localhost:${ANKI_SERVICE_PORT}"
 echo "→ Anki service will use port ${ANKI_SERVICE_PORT}"
 
 # ─── Start Anki service ───────────────────────────────────────────────────────
 echo "→ Starting Anki service..."
-ANKI_DB_PATH="$ANKI_DB_PATH_EXPANDED" docker compose up -d --build
+ANKI_DB_PATH="$ANKI_DB_PATH_EXPANDED" docker compose up -d --build --force-recreate
 
 # ─── Start Next.js (ANKI_SERVICE_URL is already exported above) ───────────────
 echo "→ Starting Next.js at http://localhost:3000"
