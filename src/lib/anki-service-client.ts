@@ -25,7 +25,7 @@ async function request<T>(
       headers: { "Content-Type": "application/json" },
       ...options,
     });
-  } catch (err) {
+  } catch {
     throw new AnkiServiceError(
       503,
       `Cannot reach Anki service at ${ANKI_SERVICE_URL}. ` +

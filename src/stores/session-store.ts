@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type {
   AnkiCard,
-  AnkiEase,
   DifficultyFeedback,
   GeneratedStory,
   NewWordEntry,

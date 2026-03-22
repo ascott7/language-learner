@@ -28,7 +28,7 @@ export function SessionSummary({
       <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Session Complete</h2>
 
       {story && (
-        <p className="text-center text-gray-500 text-sm mb-6">"{story.title}"</p>
+        <p className="text-center text-gray-500 text-sm mb-6">&ldquo;{story.title}&rdquo;</p>
       )}
 
       {/* Stats grid */}

@@ -6,7 +6,7 @@ import { useSessionStore, selectRatingBreakdown } from "@/stores/session-store";
 import { StoryDisplay } from "@/components/StoryDisplay";
 import { StoryFeedback } from "@/components/StoryFeedback";
 import { SessionSummary } from "@/components/SessionSummary";
-import type { GeneratedStory, DifficultyFeedback } from "@/types";
+import type { GeneratedStory } from "@/types";
 
 const CARDS_PER_STORY = 10;
 
