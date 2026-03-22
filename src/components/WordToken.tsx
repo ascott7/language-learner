@@ -14,8 +14,8 @@ interface WordTokenProps {
 const EASE_CLASSES: Record<AnkiEase, string> = {
   1: "bg-red-100 border-b-2 border-red-400",
   2: "bg-orange-100 border-b-2 border-orange-400",
-  3: "bg-blue-100 border-b-2 border-blue-400",
-  4: "bg-green-100 border-b-2 border-green-400",
+  3: "bg-green-100 border-b-2 border-green-400",
+  4: "bg-blue-100 border-b-2 border-blue-400",
 };
 
 export function WordToken({ word, card, sentence }: WordTokenProps) {
@@ -43,7 +43,7 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
       if (rating) {
         return `${base} ${EASE_CLASSES[rating.ease]}`;
       }
-      return `${base} bg-indigo-100 border-b-2 border-indigo-300 hover:bg-indigo-200`;
+      return `${base} bg-gray-100 border-b-2 border-gray-400 hover:bg-gray-200`;
     }
 
     if (isUnknown) {

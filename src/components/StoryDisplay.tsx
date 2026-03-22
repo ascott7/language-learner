@@ -55,6 +55,8 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
 
     const elements: React.ReactNode[] = [];
     let lastEnd = 0;
+    // Only highlight the first occurrence of each flashcard noteId
+    const seenNoteIds = new Set<number>();
 
     for (const word of story.words) {
       // Preserve whitespace/punctuation before this word
@@ -63,7 +65,14 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
         elements.push(<span key={`gap-${lastEnd}`}>{gap}</span>);
       }
 
-      const card = word.flashcardNoteId ? (cardByNoteId.get(word.flashcardNoteId) ?? null) : null;
+      let card: AnkiCard | null = null;
+      if (word.flashcardNoteId) {
+        const noteId = word.flashcardNoteId;
+        if (!seenNoteIds.has(noteId)) {
+          seenNoteIds.add(noteId);
+          card = cardByNoteId.get(noteId) ?? null;
+        }
+      }
       const sentence = sentenceFor.get(word.index) ?? story.story;
 
       elements.push(
