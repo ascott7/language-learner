@@ -21,21 +21,14 @@ Primary use case: Korean, but language-agnostic by design.
 ### Required environment variables (copy `.env.local.example` → `.env.local`)
 ```
 ANTHROPIC_API_KEY=sk-ant-...
-ANKI_DB_PATH=/absolute/path/to/collection.anki2
-ANKI_SERVICE_URL=http://localhost:5000
-APP_DB_PATH=./data/language-learner.db
+ANKI_DB_PATH=~/Library/Application Support/Anki2/User 1/collection.anki2
 ```
-
-macOS Anki collection path: `~/Library/Application Support/Anki2/User 1/collection.anki2`
 
 ## Commands
 
 ```bash
-# Start the Python Anki service (must be running before the app)
-docker compose up -d
-
-# Start the Next.js dev server
-npm run dev           # → http://localhost:3000
+# Start everything (Anki Docker service + Next.js dev server)
+./dev.sh              # → http://localhost:3000
 
 # Type checking
 npm run typecheck     # tsc --noEmit (strict mode)
