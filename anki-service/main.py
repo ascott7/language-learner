@@ -166,8 +166,13 @@ def answer_card(req: AnswerRequest) -> dict[str, Any]:
         except Exception:
             raise HTTPException(status_code=404, detail=f"Card {req.card_id} not found")
 
-        # Use Anki's real scheduler to answer the card
-        col.sched.answer_card(card, req.ease)
+        # Reset scheduler state and start the card timer (required by anki 25.x)
+        try:
+            col.reset()
+            card.start_timer()
+            col.sched.answer_card(card, req.ease)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to answer card: {e}")
 
         # Return the updated card state
         updated_card = col.get_card(req.card_id)
