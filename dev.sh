@@ -33,8 +33,27 @@ if [ ! -f "$ANKI_DB_PATH_EXPANDED" ]; then
   exit 1
 fi
 
+# ─── Backup Anki collection ───────────────────────────────────────────────────
+BACKUP_PATH="${ANKI_DB_PATH_EXPANDED}.language-learner.bak"
+cp "$ANKI_DB_PATH_EXPANDED" "$BACKUP_PATH"
+echo "→ Backed up Anki collection to $(basename "$BACKUP_PATH")"
+
+# ─── Find a free port for the Anki service ────────────────────────────────────
+ANKI_SERVICE_PORT=$(python3 -c "
+import socket
+s = socket.socket()
+s.bind(('', 0))
+print(s.getsockname()[1])
+s.close()
+")
+export ANKI_SERVICE_PORT
+export ANKI_SERVICE_URL="http://localhost:${ANKI_SERVICE_PORT}"
+echo "→ Anki service will use port ${ANKI_SERVICE_PORT}"
+
+# ─── Start Anki service ───────────────────────────────────────────────────────
 echo "→ Starting Anki service..."
 ANKI_DB_PATH="$ANKI_DB_PATH_EXPANDED" docker compose up -d --build
 
-echo "→ Starting Next.js..."
+# ─── Start Next.js (ANKI_SERVICE_URL is already exported above) ───────────────
+echo "→ Starting Next.js at http://localhost:3000"
 exec npm run dev

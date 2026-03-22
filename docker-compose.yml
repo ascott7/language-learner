@@ -2,7 +2,7 @@ services:
   anki-service:
     build: ./anki-service
     ports:
-      - "5000:5000"
+      - "${ANKI_SERVICE_PORT:-5001}:5000"
     volumes:
       # Mount your local Anki collection into the container (read/write)
       # Set ANKI_DB_PATH in .env.local to the host path of your collection.anki2
