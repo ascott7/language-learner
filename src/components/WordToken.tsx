@@ -124,13 +124,14 @@ export function WordToken({ word, card, reviewSoonCard, sentence }: WordTokenPro
   }
 
   function handleRate(ease: AnkiEase) {
-    if (!card) return;
-    rateWord(word.index, { wordIndex: word.index, noteId: card.noteId, cardId: card.cardId, ease });
+    const activeCard = card ?? reviewSoonCard;
+    if (!activeCard) return;
+    rateWord(word.index, { wordIndex: word.index, noteId: activeCard.noteId, cardId: activeCard.cardId, ease });
 
     fetch("/api/anki/answer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId: card.cardId, ease }),
+      body: JSON.stringify({ cardId: activeCard.cardId, ease }),
     }).catch(console.error);
 
     setOpen(false);
