@@ -43,11 +43,13 @@ def _sync_col(col: Collection) -> str:
     # endpoint=None uses the default AnkiWeb server; required positional in anki 25.x
     auth = col.sync_login(ANKIWEB_USERNAME, ANKIWEB_PASSWORD, None)
     out = col.sync_collection(auth, True)  # True = sync media
-    # out.required: 0=no_changes, 1=normal_sync, 2=full_sync_needed
+    # out.required: 0=no_changes, 1=normal_sync, >=2=full_sync_needed
+    # (anki 25.x returns 3 for full download on a fresh collection)
     required = getattr(out, "required", 0)
     logger.info("Sync result required=%s", required)
-    if required == 2:
+    if required >= 2:
         # Full sync needed — download server version (correct for new collections)
+        logger.info("Full download required; fetching complete collection from AnkiWeb...")
         col.full_download(auth)
         return "full_download"
     return "incremental"
