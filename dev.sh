@@ -54,7 +54,7 @@ echo "→ Anki service will use port ${ANKI_SERVICE_PORT}"
 
 # ─── Start Anki service ───────────────────────────────────────────────────────
 echo "→ Starting Anki service (will sync from AnkiWeb on startup)..."
-docker compose up -d --build --force-recreate
+docker compose --env-file .env.local up -d --build --force-recreate
 
 # ─── Start Next.js (ANKI_SERVICE_URL is already exported above) ───────────────
 echo "→ Starting Next.js at http://localhost:3000"
