@@ -40,19 +40,34 @@ ANKIWEB_PASSWORD = os.environ.get("ANKIWEB_PASSWORD", "")
 
 def _sync_col(col: Collection) -> str:
     """Perform an incremental sync, falling back to full download if needed."""
+    from anki.sync_pb2 import SyncCollectionResponse
+    CR = SyncCollectionResponse.ChangesRequired
+
     # endpoint=None uses the default AnkiWeb server; required positional in anki 25.x
     auth = col.sync_login(ANKIWEB_USERNAME, ANKIWEB_PASSWORD, None)
     out = col.sync_collection(auth, True)  # True = sync media
-    # out.required: 0=no_changes, 1=normal_sync, >=2=full_sync_needed
-    # (anki 25.x returns 3 for full download on a fresh collection)
-    required = getattr(out, "required", 0)
-    logger.info("Sync result required=%s", required)
-    if required >= 2:
-        # Full sync needed — download server version (correct for new collections)
+    required = out.required
+    logger.info("Sync result required=%s (%s)", required, CR.Name(required))
+
+    if required in (CR.Value("FULL_DOWNLOAD"), CR.Value("FULL_SYNC")):
         logger.info("Full download required; fetching complete collection from AnkiWeb...")
-        col.full_download(auth)
+        # sync_collection returns the shard endpoint to use for the full sync
+        if out.new_endpoint:
+            auth.endpoint = out.new_endpoint
+        col.close_for_full_sync()
+        col.full_upload_or_download(auth=auth, server_usn=None, upload=False)
         return "full_download"
-    return "incremental"
+    elif required == CR.Value("FULL_UPLOAD"):
+        logger.info("Full upload required...")
+        if out.new_endpoint:
+            auth.endpoint = out.new_endpoint
+        col.close_for_full_sync()
+        col.full_upload_or_download(auth=auth, server_usn=None, upload=True)
+        return "full_upload"
+    elif required == CR.Value("NORMAL_SYNC"):
+        return "incremental"
+    else:
+        return "no_changes"
 
 
 def _do_startup_sync() -> None:
