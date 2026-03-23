@@ -23,6 +23,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
   const earlyReviewCount = useSessionStore(selectEarlyReviewCount);
   const dueCards = useSessionStore((s) => s.dueCards);
   const todayDayNum = useSessionStore((s) => s.todayDayNum);
+  const reviewedEarlyCardIds = useSessionStore((s) => s.reviewedEarlyCardIds);
 
   // Build noteId → AnkiCard map
   const cardByNoteId = useMemo(() => {
@@ -40,13 +41,14 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
     const map = new Map<string, AnkiCard>();
     for (const card of dueCards) {
       if (selectedNoteIds.has(card.noteId)) continue;
+      if (reviewedEarlyCardIds.has(card.cardId)) continue;
       if (card.type !== 2) continue; // only review cards have meaningful due day nums
       if (todayDayNum > 0 && card.due > todayDayNum + 7) continue;
       const front = cardFront(card).replace(/<[^>]+>/g, "").trim();
       if (front) map.set(front, card);
     }
     return map;
-  }, [dueCards, cards, todayDayNum]);
+  }, [dueCards, cards, todayDayNum, reviewedEarlyCardIds]);
 
   // Build sentence lookup: for each word, find the sentence it belongs to
   const sentenceFor = useMemo(() => {

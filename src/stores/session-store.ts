@@ -34,6 +34,9 @@ interface SessionState {
   // End-of-session
   difficultyFeedback: DifficultyFeedback | null;
 
+  // Cards reviewed early (persists across reset so same card isn't shown again this session)
+  reviewedEarlyCardIds: Set<number>;
+
   // Actions
   setDeckName: (name: string) => void;
   setLanguage: (lang: string) => void;
@@ -50,6 +53,7 @@ interface SessionState {
   updateNewWord: (wordIndex: number, partial: Partial<NewWordEntry>) => void;
   setDifficultyFeedback: (feedback: DifficultyFeedback) => void;
   setPhase: (phase: SessionPhase) => void;
+  markEarlyReviewDone: (cardId: number) => void;
   reset: () => void;
 }
 
@@ -73,6 +77,8 @@ const initialState = {
 
 export const useSessionStore = create<SessionState>((set) => ({
   ...initialState,
+  // Not in initialState so reset() doesn't clear it — intentionally persists across stories
+  reviewedEarlyCardIds: new Set<number>(),
 
   setDeckName: (name) => set({ deckName: name }),
   setLanguage: (lang) => set({ language: lang }),
@@ -107,6 +113,8 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   setDifficultyFeedback: (feedback) => set({ difficultyFeedback: feedback }),
   setPhase: (phase) => set({ phase }),
+  markEarlyReviewDone: (cardId) =>
+    set((s) => ({ reviewedEarlyCardIds: new Set([...s.reviewedEarlyCardIds, cardId]) })),
 
   reset: () =>
     set({

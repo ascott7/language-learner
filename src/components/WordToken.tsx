@@ -31,6 +31,7 @@ export function WordToken({ word, card, reviewSoonCard, sentence }: WordTokenPro
   } | null>(null);
 
   const rateWord = useSessionStore((s) => s.rateWord);
+  const markEarlyReviewDone = useSessionStore((s) => s.markEarlyReviewDone);
   const addNewWord = useSessionStore((s) => s.addNewWord);
   const wordRatings = useSessionStore((s) => s.wordRatings);
   const newWords = useSessionStore((s) => s.newWords);
@@ -127,6 +128,7 @@ export function WordToken({ word, card, reviewSoonCard, sentence }: WordTokenPro
     const activeCard = card ?? reviewSoonCard;
     if (!activeCard) return;
     rateWord(word.index, { wordIndex: word.index, noteId: activeCard.noteId, cardId: activeCard.cardId, ease });
+    if (isReviewSoon) markEarlyReviewDone(activeCard.cardId);
 
     fetch("/api/anki/answer", {
       method: "POST",
