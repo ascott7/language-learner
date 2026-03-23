@@ -166,8 +166,14 @@ export function parseStory(rawText: string, cards: AnkiCard[]): GeneratedStory {
   }
 
   const words = tokenizeStory(story, verified);
+  const seenNoteIds = new Set<number>();
   const flashcardWordIndices = words
-    .filter((w) => w.flashcardNoteId !== null)
+    .filter((w) => {
+      if (w.flashcardNoteId === null) return false;
+      if (seenNoteIds.has(w.flashcardNoteId)) return false;
+      seenNoteIds.add(w.flashcardNoteId);
+      return true;
+    })
     .map((w) => w.index);
 
   return {
