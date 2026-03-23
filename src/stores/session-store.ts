@@ -127,6 +127,10 @@ export function selectAllWordsRated(state: SessionState): boolean {
   return total > 0 && selectRatedCount(state) >= total;
 }
 
+export function selectNewWordsCount(state: SessionState): number {
+  return Object.values(state.newWords).filter((w) => w.confirmed).length;
+}
+
 export function selectRatingBreakdown(state: SessionState): {
   again: number;
   hard: number;

@@ -85,6 +85,7 @@ interface UnknownWordPopoverProps {
   isAdded: boolean;
   baseForm?: string;
   definition?: string;
+  existingNote: { front: string; back: string } | null;
   onSave: (front: string, back: string) => void;
   onClose: () => void;
 }
@@ -96,6 +97,7 @@ export function UnknownWordPopover({
   isAdded,
   baseForm,
   definition,
+  existingNote,
   onSave,
   onClose,
 }: UnknownWordPopoverProps) {
@@ -161,12 +163,18 @@ export function UnknownWordPopover({
               className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
             />
           </div>
+          {existingNote && (
+            <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+              <p className="font-medium mb-0.5">Already in your deck:</p>
+              <p className="text-amber-700">{existingNote.front} — {existingNote.back}</p>
+            </div>
+          )}
           <button
             onClick={() => onSave(editedFront, editedBack)}
             disabled={isSaving || isLookingUp || !editedFront || !editedBack}
             className="w-full text-sm py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-lg transition-colors"
           >
-            {isSaving ? "Saving…" : "Add to Anki deck"}
+            {isSaving ? "Saving…" : existingNote ? "Add anyway" : "Add to Anki deck"}
           </button>
         </>
       )}

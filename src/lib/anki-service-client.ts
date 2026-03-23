@@ -91,6 +91,15 @@ export async function addNote(
   });
 }
 
+export async function findNotes(
+  query: string,
+): Promise<{ exists: boolean; notes: { noteId: number; front: string; back: string }[] }> {
+  return request("/find-notes", {
+    method: "POST",
+    body: JSON.stringify({ query }),
+  });
+}
+
 export async function syncCollection(): Promise<{ success: boolean; action: string }> {
   return request("/sync", { method: "POST" });
 }

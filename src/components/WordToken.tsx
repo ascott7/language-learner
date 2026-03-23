@@ -23,7 +23,11 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // Local lookup result — not persisted to store until user saves
-  const [lookupResult, setLookupResult] = useState<{ baseForm: string; definition: string } | null>(null);
+  const [lookupResult, setLookupResult] = useState<{
+    baseForm: string;
+    definition: string;
+    existingNote: { front: string; back: string } | null;
+  } | null>(null);
 
   const rateWord = useSessionStore((s) => s.rateWord);
   const addNewWord = useSessionStore((s) => s.addNewWord);
@@ -70,7 +74,11 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
         body: JSON.stringify({ word: word.text, sentence, language, lookupOnly: true }),
       });
       if (res.ok) {
-        const data = (await res.json()) as { baseForm: string; definition: string };
+        const data = (await res.json()) as {
+          baseForm: string;
+          definition: string;
+          existingNote: { front: string; back: string } | null;
+        };
         setLookupResult(data);
       }
     } finally {
@@ -140,6 +148,7 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
           isAdded={!!confirmedEntry}
           baseForm={lookupResult?.baseForm ?? confirmedEntry?.baseForm}
           definition={lookupResult?.definition ?? confirmedEntry?.definition}
+          existingNote={lookupResult?.existingNote ?? null}
           onSave={handleSaveToAnki}
           onClose={() => setOpen(false)}
         />

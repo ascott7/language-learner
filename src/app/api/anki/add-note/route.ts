@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addNote, AnkiServiceError } from "@/lib/anki-service-client";
+import { addNote, findNotes, AnkiServiceError } from "@/lib/anki-service-client";
 import { getLookupDefinition } from "@/lib/claude-client";
 
 export async function POST(req: NextRequest) {
@@ -27,9 +27,22 @@ export async function POST(req: NextRequest) {
         );
       }
       const lookup = await getLookupDefinition(word, sentence, language ?? "");
+
+      // Check if a note with this base form already exists in the collection
+      let existingNote: { front: string; back: string } | null = null;
+      try {
+        const found = await findNotes(`"${lookup.baseForm}"`);
+        if (found.exists && found.notes.length > 0) {
+          existingNote = { front: found.notes[0].front, back: found.notes[0].back };
+        }
+      } catch {
+        // Non-fatal — proceed without duplicate check
+      }
+
       return NextResponse.json({
         baseForm: lookup.baseForm,
         definition: lookup.definition,
+        existingNote,
       });
     }
 

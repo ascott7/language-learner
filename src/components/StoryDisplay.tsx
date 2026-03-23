@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { AnkiCard, GeneratedStory } from "@/types";
-import { useSessionStore, selectAllWordsRated, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
+import { useSessionStore, selectAllWordsRated, selectNewWordsCount, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
 import { WordToken } from "./WordToken";
 import { TranslationPanel } from "./TranslationPanel";
 
@@ -18,6 +18,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
   const ratedCount = useSessionStore(selectRatedCount);
   const totalFlashcardWords = useSessionStore(selectTotalFlashcardWords);
   const allRated = useSessionStore(selectAllWordsRated);
+  const newWordsCount = useSessionStore(selectNewWordsCount);
 
   // Build noteId → AnkiCard map
   const cardByNoteId = useMemo(() => {
@@ -131,6 +132,11 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-gray-500">
           {ratedCount}/{totalFlashcardWords} words rated
+          {newWordsCount > 0 && (
+            <span className="ml-3 text-amber-600">
+              +{newWordsCount} new {newWordsCount === 1 ? "word" : "words"}
+            </span>
+          )}
         </p>
         <div className="flex gap-2">
           <button

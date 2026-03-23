@@ -149,6 +149,10 @@ class AddNoteRequest(BaseModel):
     tags: list[str] = []
 
 
+class FindNotesRequest(BaseModel):
+    query: str
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -276,6 +280,23 @@ def add_note(req: AddNoteRequest) -> dict[str, Any]:
         col.add_note(note, deck["id"])
 
         return {"noteId": note.id, "success": True}
+
+
+@app.post("/find-notes")
+def find_notes(req: FindNotesRequest) -> dict[str, Any]:
+    """Search for existing notes matching a query. Used to detect duplicates."""
+    with open_collection() as col:
+        note_ids = col.find_notes(req.query)
+        notes = []
+        for note_id in list(note_ids)[:3]:
+            try:
+                note = col.get_note(note_id)
+                front = note.fields[0] if note.fields else ""
+                back = note.fields[1] if len(note.fields) > 1 else ""
+                notes.append({"noteId": note_id, "front": front, "back": back})
+            except Exception:
+                continue
+        return {"exists": len(note_ids) > 0, "notes": notes}
 
 
 @app.post("/sync")
