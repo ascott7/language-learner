@@ -9,14 +9,16 @@ Provides REST endpoints for:
   POST /add-note     — add a new note to a deck
   POST /sync         — sync with AnkiWeb
 
-The Anki collection path is read from the ANKI_DB_PATH environment variable.
+On startup, if ANKIWEB_USERNAME and ANKIWEB_PASSWORD are set, the service
+syncs the collection from AnkiWeb. If no local collection exists yet it is
+created and a full download is performed.
 """
 
 from __future__ import annotations
 
+import logging
 import os
-import time
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from typing import Any, Generator
 
 from anki.collection import Collection
@@ -25,9 +27,63 @@ from anki.notes import Note
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-ANKI_DB_PATH = os.environ.get("ANKI_DB_PATH", "/data/collection.anki2")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Anki Service")
+ANKI_DB_PATH = os.environ.get("ANKI_DB_PATH", "/data/collection.anki2")
+ANKIWEB_USERNAME = os.environ.get("ANKIWEB_USERNAME", "")
+ANKIWEB_PASSWORD = os.environ.get("ANKIWEB_PASSWORD", "")
+
+
+# ─── Sync helpers ─────────────────────────────────────────────────────────────
+
+
+def _sync_col(col: Collection) -> str:
+    """Perform an incremental sync, falling back to full download if needed."""
+    auth = col.sync_login(ANKIWEB_USERNAME, ANKIWEB_PASSWORD)
+    out = col.sync_collection(auth, True)  # True = sync media
+    # out.required: 0=no_changes, 1=normal_sync, 2=full_sync_needed
+    required = getattr(out, "required", 0)
+    if required == 2:
+        # Full sync needed — download server version (correct for new collections)
+        col.full_download(auth)
+        return "full_download"
+    return "incremental"
+
+
+def _do_startup_sync() -> None:
+    """Sync collection from AnkiWeb on service startup."""
+    if not ANKIWEB_USERNAME or not ANKIWEB_PASSWORD:
+        logger.info("No AnkiWeb credentials configured; skipping startup sync")
+        return
+
+    data_dir = os.path.dirname(os.path.abspath(ANKI_DB_PATH))
+    os.makedirs(data_dir, exist_ok=True)
+
+    logger.info("Syncing Anki collection from AnkiWeb...")
+    try:
+        col = Collection(ANKI_DB_PATH)
+        try:
+            action = _sync_col(col)
+        finally:
+            col.close()
+        logger.info("Startup sync complete (action: %s)", action)
+    except Exception as exc:
+        logger.error("Startup sync failed: %s", exc)
+        logger.info("Continuing with local collection (if present)")
+
+
+# ─── FastAPI app ──────────────────────────────────────────────────────────────
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import asyncio
+    await asyncio.get_event_loop().run_in_executor(None, _do_startup_sync)
+    yield
+
+
+app = FastAPI(title="Anki Service", lifespan=lifespan)
 
 
 @contextmanager
@@ -37,7 +93,7 @@ def open_collection() -> Generator[Collection, None, None]:
         raise HTTPException(
             status_code=503,
             detail=f"Anki collection not found at {ANKI_DB_PATH}. "
-            "Mount your collection.anki2 file into the container.",
+            "The service may still be syncing — try again in a moment.",
         )
     try:
         col = Collection(ANKI_DB_PATH)
@@ -46,7 +102,7 @@ def open_collection() -> Generator[Collection, None, None]:
         if "already open" in msg or "media currently syncing" in msg:
             raise HTTPException(
                 status_code=503,
-                detail="Anki desktop is open and has locked the database. Close Anki and restart the service.",
+                detail="Anki collection is locked. If Anki desktop is open, close it.",
             )
         raise HTTPException(status_code=500, detail=f"Failed to open collection: {msg}")
     try:
@@ -72,11 +128,6 @@ class AddNoteRequest(BaseModel):
     front: str
     back: str
     tags: list[str] = []
-
-
-class SyncRequest(BaseModel):
-    username: str
-    password: str
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,25 +178,15 @@ def list_decks() -> dict[str, Any]:
 @app.post("/cards")
 def get_due_cards(req: CardsRequest) -> dict[str, Any]:
     with open_collection() as col:
-        # Find the deck
         deck = col.decks.by_name(req.deck_name)
         if deck is None:
             raise HTTPException(status_code=404, detail=f"Deck '{req.deck_name}' not found")
 
-        # Get all due card IDs for this deck
-        query = f'deck:"{req.deck_name}" is:due'
-        due_ids = col.find_cards(query)
+        due_ids = col.find_cards(f'deck:"{req.deck_name}" is:due')
         total_due = len(due_ids)
+        rated_today = len(col.find_cards(f'deck:"{req.deck_name}" rated:1'))
+        new_ids = col.find_cards(f'deck:"{req.deck_name}" is:new')
 
-        # Cards rated today
-        rated_query = f'deck:"{req.deck_name}" rated:1'
-        rated_today = len(col.find_cards(rated_query))
-
-        # Also include new cards
-        new_query = f'deck:"{req.deck_name}" is:new'
-        new_ids = col.find_cards(new_query)
-
-        # Combine: due first, then new
         all_ids = list(due_ids) + [i for i in new_ids if i not in set(due_ids)]
 
         cards = []
@@ -170,7 +211,6 @@ def answer_card(req: AnswerRequest) -> dict[str, Any]:
         except Exception:
             raise HTTPException(status_code=404, detail=f"Card {req.card_id} not found")
 
-        # Reset scheduler state and start the card timer (required by anki 25.x)
         try:
             col.reset()
             card.start_timer()
@@ -178,7 +218,6 @@ def answer_card(req: AnswerRequest) -> dict[str, Any]:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to answer card: {e}")
 
-        # Return the updated card state
         updated_card = col.get_card(req.card_id)
         return {
             "success": True,
@@ -196,10 +235,8 @@ def add_note(req: AddNoteRequest) -> dict[str, Any]:
         if deck is None:
             raise HTTPException(status_code=404, detail=f"Deck '{req.deck_name}' not found")
 
-        # Use the Basic note type
         model = col.models.by_name("Basic")
         if model is None:
-            # Fall back to first available model
             models = col.models.all()
             if not models:
                 raise HTTPException(status_code=500, detail="No note types found")
@@ -208,7 +245,6 @@ def add_note(req: AddNoteRequest) -> dict[str, Any]:
         note = col.new_note(model)
         field_names = col.models.field_names(model)
 
-        # Map front/back to the actual field names
         if len(field_names) >= 2:
             note.fields[0] = req.front
             note.fields[1] = req.back
@@ -218,22 +254,23 @@ def add_note(req: AddNoteRequest) -> dict[str, Any]:
         if req.tags:
             note.tags = req.tags
 
-        # Set the target deck
         note.note_type()["did"] = deck["id"]
-
         col.add_note(note, deck["id"])
 
         return {"noteId": note.id, "success": True}
 
 
 @app.post("/sync")
-def sync_collection(req: SyncRequest) -> dict[str, Any]:
-    """Sync with AnkiWeb. Requires AnkiWeb username and password."""
+def sync_endpoint() -> dict[str, Any]:
+    """Sync with AnkiWeb using credentials from environment variables."""
+    if not ANKIWEB_USERNAME or not ANKIWEB_PASSWORD:
+        raise HTTPException(
+            status_code=400,
+            detail="ANKIWEB_USERNAME and ANKIWEB_PASSWORD must be set in environment",
+        )
     with open_collection() as col:
         try:
-            # Authenticate and sync
-            auth = col.sync_login(req.username, req.password)
-            result = col.sync_collection(auth, False)
-            return {"success": True, "result": str(result)}
+            action = _sync_col(col)
+            return {"success": True, "action": action}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Sync failed: {e}")

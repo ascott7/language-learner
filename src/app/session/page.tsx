@@ -132,6 +132,11 @@ export default function SessionPage() {
       });
 
       setPhase("summary");
+
+      // Sync to AnkiWeb in the background — fire and forget
+      fetch("/api/anki/sync", { method: "POST" }).catch((err: unknown) =>
+        console.error("AnkiWeb sync failed:", err),
+      );
     } finally {
       setSubmitting(false);
     }

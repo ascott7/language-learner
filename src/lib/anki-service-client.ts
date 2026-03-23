@@ -91,14 +91,8 @@ export async function addNote(
   });
 }
 
-export async function syncCollection(
-  username: string,
-  password: string,
-): Promise<{ success: boolean }> {
-  return request("/sync", {
-    method: "POST",
-    body: JSON.stringify({ username, password }),
-  });
+export async function syncCollection(): Promise<{ success: boolean; action: string }> {
+  return request("/sync", { method: "POST" });
 }
 
 export { AnkiServiceError };

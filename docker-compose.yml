@@ -4,10 +4,13 @@ services:
     ports:
       - "${ANKI_SERVICE_PORT:-5001}:5000"
     volumes:
-      # Mount your local Anki collection into the container (read/write)
-      # Set ANKI_DB_PATH in .env.local to the host path of your collection.anki2
-      # macOS default: ~/Library/Application Support/Anki2/User 1/collection.anki2
-      - ${ANKI_DB_PATH}:/data/collection.anki2
+      # Named volume — collection persists across container restarts
+      - anki-data:/data
     environment:
       - ANKI_DB_PATH=/data/collection.anki2
+      - ANKIWEB_USERNAME=${ANKIWEB_USERNAME}
+      - ANKIWEB_PASSWORD=${ANKIWEB_PASSWORD}
     restart: unless-stopped
+
+volumes:
+  anki-data:
