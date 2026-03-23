@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { AnkiCard, GeneratedStory } from "@/types";
 import { cardFront } from "@/types";
-import { useSessionStore, selectAllWordsRated, selectNewWordsCount, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
+import { useSessionStore, selectAllWordsRated, selectEarlyReviewCount, selectNewWordsCount, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
 import { WordToken } from "./WordToken";
 import { TranslationPanel } from "./TranslationPanel";
 
@@ -20,6 +20,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
   const totalFlashcardWords = useSessionStore(selectTotalFlashcardWords);
   const allRated = useSessionStore(selectAllWordsRated);
   const newWordsCount = useSessionStore(selectNewWordsCount);
+  const earlyReviewCount = useSessionStore(selectEarlyReviewCount);
   const dueCards = useSessionStore((s) => s.dueCards);
   const todayDayNum = useSessionStore((s) => s.todayDayNum);
 
@@ -163,6 +164,11 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
           {newWordsCount > 0 && (
             <span className="ml-3 text-amber-600">
               +{newWordsCount} new {newWordsCount === 1 ? "word" : "words"}
+            </span>
+          )}
+          {earlyReviewCount > 0 && (
+            <span className="ml-3 text-violet-600">
+              · {earlyReviewCount} early {earlyReviewCount === 1 ? "review" : "reviews"}
             </span>
           )}
         </p>

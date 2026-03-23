@@ -137,6 +137,13 @@ export function selectNewWordsCount(state: SessionState): number {
   return Object.values(state.newWords).filter((w) => w.confirmed).length;
 }
 
+export function selectEarlyReviewCount(state: SessionState): number {
+  const flashcardIndices = new Set(state.story?.flashcardWordIndices ?? []);
+  return Object.keys(state.wordRatings).filter(
+    (i) => !flashcardIndices.has(Number(i)),
+  ).length;
+}
+
 export function selectRatingBreakdown(state: SessionState): {
   again: number;
   hard: number;
