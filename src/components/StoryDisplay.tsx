@@ -145,9 +145,9 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
       {/* Story text */}
       <div className="prose prose-gray max-w-none text-lg leading-relaxed">
         {paragraphTokens.map((para, i) => (
-          <p key={i} className="mb-4">
+          <div key={i} className="mb-4">
             {para}
-          </p>
+          </div>
         ))}
       </div>
 

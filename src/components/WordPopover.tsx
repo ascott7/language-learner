@@ -7,8 +7,8 @@ import { cardBack } from "@/types";
 const EASE_BUTTONS: { ease: AnkiEase; label: string; color: string }[] = [
   { ease: 1, label: "Again", color: "bg-red-100 hover:bg-red-200 text-red-800" },
   { ease: 2, label: "Hard", color: "bg-orange-100 hover:bg-orange-200 text-orange-800" },
-  { ease: 3, label: "Good", color: "bg-blue-100 hover:bg-blue-200 text-blue-800" },
-  { ease: 4, label: "Easy", color: "bg-green-100 hover:bg-green-200 text-green-800" },
+  { ease: 3, label: "Good", color: "bg-green-100 hover:bg-green-200 text-green-800" },
+  { ease: 4, label: "Easy", color: "bg-blue-100 hover:bg-blue-200 text-blue-800" },
 ];
 
 interface FlashcardPopoverProps {
