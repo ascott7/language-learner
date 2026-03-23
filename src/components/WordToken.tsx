@@ -7,7 +7,8 @@ import { FlashcardPopover, UnknownWordPopover } from "./WordPopover";
 
 interface WordTokenProps {
   word: StoryWord;
-  card: AnkiCard | null; // set when word is a flashcard word
+  card: AnkiCard | null; // set when word is a selected flashcard word
+  reviewSoonCard: AnkiCard | null; // set when word matches a card due within 7 days
   sentence: string; // surrounding sentence for definition lookup
 }
 
@@ -18,7 +19,7 @@ const EASE_CLASSES: Record<AnkiEase, string> = {
   4: "bg-blue-100 border-b-2 border-blue-400",
 };
 
-export function WordToken({ word, card, sentence }: WordTokenProps) {
+export function WordToken({ word, card, reviewSoonCard, sentence }: WordTokenProps) {
   const [open, setOpen] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,6 +41,7 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
   // Only treat as "confirmed new word" when actually saved — not during lookup
   const confirmedEntry = newWords[word.index]?.confirmed ? newWords[word.index] : undefined;
   const isFlashcard = !!card;
+  const isReviewSoon = !isFlashcard && !!reviewSoonCard;
 
   function getClassName(): string {
     const base = "relative inline cursor-pointer rounded px-0.5 transition-colors";
@@ -53,12 +55,18 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
       return `${base} font-semibold bg-amber-50 border-b-2 border-amber-400`;
     }
 
+    if (isReviewSoon) {
+      const reviewRating = wordRatings[word.index];
+      if (reviewRating) return `${base} ${EASE_CLASSES[reviewRating.ease]}`;
+      return `${base} border-b-2 border-dashed border-violet-400 hover:bg-violet-50`;
+    }
+
     return `${base} hover:bg-gray-100`;
   }
 
   function handleClick() {
     setOpen((prev) => !prev);
-    if (!isFlashcard && !confirmedEntry && !isLookingUp && !lookupResult) {
+    if (!isFlashcard && !isReviewSoon && !confirmedEntry && !isLookingUp && !lookupResult) {
       triggerLookup();
     }
   }
@@ -131,16 +139,17 @@ export function WordToken({ word, card, sentence }: WordTokenProps) {
   return (
     <span className={getClassName()} onClick={handleClick}>
       {word.text}
-      {open && isFlashcard && card && (
+      {open && (isFlashcard || isReviewSoon) && (card ?? reviewSoonCard) && (
         <FlashcardPopover
           word={word}
-          card={card}
+          card={(card ?? reviewSoonCard)!}
           rated={rating?.ease ?? null}
+          reviewSoon={isReviewSoon}
           onRate={handleRate}
           onClose={() => setOpen(false)}
         />
       )}
-      {open && !isFlashcard && (
+      {open && !isFlashcard && !isReviewSoon && (
         <UnknownWordPopover
           word={word}
           isLookingUp={isLookingUp}

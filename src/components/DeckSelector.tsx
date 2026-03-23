@@ -46,9 +46,9 @@ export function DeckSelector({ onStartSession }: DeckSelectorProps) {
       body: JSON.stringify({ deckName }),
     })
       .then((r) => r.json())
-      .then((data: { cards?: import("@/types").AnkiCard[]; totalDue?: number; ratedToday?: number; error?: string }) => {
+      .then((data: { cards?: import("@/types").AnkiCard[]; totalDue?: number; ratedToday?: number; todayDayNum?: number; error?: string }) => {
         if (data.cards) {
-          setDueCards(data.cards);
+          setDueCards(data.cards, data.todayDayNum);
           setRatedToday(data.ratedToday ?? 0);
         } else {
           setError(data.error ?? "Failed to load cards");

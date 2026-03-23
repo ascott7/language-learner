@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { AnkiCard, GeneratedStory } from "@/types";
+import { cardFront } from "@/types";
 import { useSessionStore, selectAllWordsRated, selectNewWordsCount, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
 import { WordToken } from "./WordToken";
 import { TranslationPanel } from "./TranslationPanel";
@@ -19,6 +20,8 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
   const totalFlashcardWords = useSessionStore(selectTotalFlashcardWords);
   const allRated = useSessionStore(selectAllWordsRated);
   const newWordsCount = useSessionStore(selectNewWordsCount);
+  const dueCards = useSessionStore((s) => s.dueCards);
+  const todayDayNum = useSessionStore((s) => s.todayDayNum);
 
   // Build noteId → AnkiCard map
   const cardByNoteId = useMemo(() => {
@@ -28,6 +31,21 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
     }
     return map;
   }, [cards]);
+
+  // Build front-text → AnkiCard map for review cards due within 7 days
+  // (excludes already-selected flashcard cards)
+  const reviewSoonByText = useMemo(() => {
+    const selectedNoteIds = new Set(cards.map((c) => c.noteId));
+    const map = new Map<string, AnkiCard>();
+    for (const card of dueCards) {
+      if (selectedNoteIds.has(card.noteId)) continue;
+      if (card.type !== 2) continue; // only review cards have meaningful due day nums
+      if (todayDayNum > 0 && card.due > todayDayNum + 7) continue;
+      const front = cardFront(card).replace(/<[^>]+>/g, "").trim();
+      if (front) map.set(front, card);
+    }
+    return map;
+  }, [dueCards, cards, todayDayNum]);
 
   // Build sentence lookup: for each word, find the sentence it belongs to
   const sentenceFor = useMemo(() => {
@@ -58,6 +76,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
     let lastEnd = 0;
     // Only highlight the first occurrence of each flashcard noteId
     const seenNoteIds = new Set<number>();
+    const seenReviewSoonTexts = new Set<string>();
 
     for (const word of story.words) {
       // Preserve whitespace/punctuation before this word
@@ -74,6 +93,14 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
           card = cardByNoteId.get(noteId) ?? null;
         }
       }
+
+      // Check for review-soon match (only for non-flashcard words, first occurrence)
+      let reviewSoonCard: AnkiCard | null = null;
+      if (!card && !seenReviewSoonTexts.has(word.text)) {
+        reviewSoonCard = reviewSoonByText.get(word.text) ?? null;
+        if (reviewSoonCard) seenReviewSoonTexts.add(word.text);
+      }
+
       const sentence = sentenceFor.get(word.index) ?? story.story;
 
       elements.push(
@@ -81,6 +108,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
           key={`word-${word.index}`}
           word={word}
           card={card}
+          reviewSoonCard={reviewSoonCard}
           sentence={sentence}
         />,
       );
@@ -96,7 +124,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
     }
 
     return elements;
-  }, [story, cardByNoteId, sentenceFor]);
+  }, [story, cardByNoteId, sentenceFor, reviewSoonByText]);
 
   // Split into paragraphs
   const paragraphTokens = useMemo(() => {

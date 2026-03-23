@@ -15,6 +15,7 @@ interface FlashcardPopoverProps {
   word: StoryWord;
   card: AnkiCard;
   rated: AnkiEase | null;
+  reviewSoon?: boolean;
   onRate: (ease: AnkiEase) => void;
   onClose: () => void;
 }
@@ -23,6 +24,7 @@ export function FlashcardPopover({
   word,
   card,
   rated,
+  reviewSoon = false,
   onRate,
   onClose,
 }: FlashcardPopoverProps) {
@@ -59,6 +61,9 @@ export function FlashcardPopover({
         </button>
       </div>
 
+      {reviewSoon && (
+        <p className="text-xs text-violet-600 mb-2">Review due soon</p>
+      )}
       <p className="text-sm text-gray-700 mb-3">{cardBack(card)}</p>
 
       <div className="grid grid-cols-4 gap-1">

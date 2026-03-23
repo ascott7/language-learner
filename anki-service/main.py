@@ -220,7 +220,12 @@ def get_due_cards(req: CardsRequest) -> dict[str, Any]:
             except Exception:
                 continue
 
-        return {"cards": cards, "totalDue": total_due, "ratedToday": rated_today}
+        return {
+            "cards": cards,
+            "totalDue": total_due,
+            "ratedToday": rated_today,
+            "todayDayNum": col.sched.today,
+        }
 
 
 @app.post("/answer")

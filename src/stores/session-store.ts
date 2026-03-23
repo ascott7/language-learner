@@ -17,6 +17,7 @@ interface SessionState {
   // Card data
   dueCards: AnkiCard[];
   selectedCards: AnkiCard[]; // subset used for current story
+  todayDayNum: number; // Anki's current day number, for computing due-soon
 
   // Story
   phase: SessionPhase;
@@ -37,7 +38,7 @@ interface SessionState {
   setDeckName: (name: string) => void;
   setLanguage: (lang: string) => void;
   setTargetLevel: (level: number) => void;
-  setDueCards: (cards: AnkiCard[]) => void;
+  setDueCards: (cards: AnkiCard[], todayDayNum?: number) => void;
   setSelectedCards: (cards: AnkiCard[]) => void;
   setStory: (story: GeneratedStory) => void;
   setTranslation: (text: string) => void;
@@ -58,6 +59,7 @@ const initialState = {
   targetLevel: 3,
   dueCards: [],
   selectedCards: [],
+  todayDayNum: 0,
   phase: "deck-select" as SessionPhase,
   story: null,
   translation: null,
@@ -75,7 +77,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   setDeckName: (name) => set({ deckName: name }),
   setLanguage: (lang) => set({ language: lang }),
   setTargetLevel: (level) => set({ targetLevel: level }),
-  setDueCards: (cards) => set({ dueCards: cards }),
+  setDueCards: (cards, todayDayNum) =>
+    set((s) => ({ dueCards: cards, todayDayNum: todayDayNum ?? s.todayDayNum })),
   setSelectedCards: (cards) => set({ selectedCards: cards }),
   setStory: (story) => set({ story, phase: "reading" }),
   setTranslation: (text) => set({ translation: text }),
@@ -115,7 +118,10 @@ export const useSessionStore = create<SessionState>((set) => ({
 // ─── Derived selectors ────────────────────────────────────────────────────────
 
 export function selectRatedCount(state: SessionState): number {
-  return Object.keys(state.wordRatings).length;
+  const flashcardIndices = new Set(state.story?.flashcardWordIndices ?? []);
+  return Object.keys(state.wordRatings).filter((i) =>
+    flashcardIndices.has(Number(i)),
+  ).length;
 }
 
 export function selectTotalFlashcardWords(state: SessionState): number {
