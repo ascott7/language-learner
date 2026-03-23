@@ -137,6 +137,10 @@ def get_due_cards(req: CardsRequest) -> dict[str, Any]:
         due_ids = col.find_cards(query)
         total_due = len(due_ids)
 
+        # Cards rated today
+        rated_query = f'deck:"{req.deck_name}" rated:1'
+        rated_today = len(col.find_cards(rated_query))
+
         # Also include new cards
         new_query = f'deck:"{req.deck_name}" is:new'
         new_ids = col.find_cards(new_query)
@@ -152,7 +156,7 @@ def get_due_cards(req: CardsRequest) -> dict[str, Any]:
             except Exception:
                 continue
 
-        return {"cards": cards, "totalDue": total_due}
+        return {"cards": cards, "totalDue": total_due, "ratedToday": rated_today}
 
 
 @app.post("/answer")

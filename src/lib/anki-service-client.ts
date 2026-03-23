@@ -53,8 +53,8 @@ export async function getDecks(): Promise<string[]> {
 
 export async function getDueCards(
   deckName: string,
-): Promise<{ cards: AnkiCard[]; totalDue: number }> {
-  return request<{ cards: AnkiCard[]; totalDue: number }>("/cards", {
+): Promise<{ cards: AnkiCard[]; totalDue: number; ratedToday: number }> {
+  return request<{ cards: AnkiCard[]; totalDue: number; ratedToday: number }>("/cards", {
     method: "POST",
     body: JSON.stringify({ deck_name: deckName }),
   });

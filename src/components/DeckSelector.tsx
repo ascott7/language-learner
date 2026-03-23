@@ -18,6 +18,7 @@ export function DeckSelector({ onStartSession }: DeckSelectorProps) {
   const [decks, setDecks] = useState<string[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(false);
   const [loadingCards, setLoadingCards] = useState(false);
+  const [ratedToday, setRatedToday] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // Load decks on mount
@@ -45,9 +46,13 @@ export function DeckSelector({ onStartSession }: DeckSelectorProps) {
       body: JSON.stringify({ deckName }),
     })
       .then((r) => r.json())
-      .then((data: { cards?: import("@/types").AnkiCard[]; totalDue?: number; error?: string }) => {
-        if (data.cards) setDueCards(data.cards);
-        else setError(data.error ?? "Failed to load cards");
+      .then((data: { cards?: import("@/types").AnkiCard[]; totalDue?: number; ratedToday?: number; error?: string }) => {
+        if (data.cards) {
+          setDueCards(data.cards);
+          setRatedToday(data.ratedToday ?? 0);
+        } else {
+          setError(data.error ?? "Failed to load cards");
+        }
       })
       .catch(() => setError("Failed to load cards"))
       .finally(() => setLoadingCards(false));
@@ -82,8 +87,8 @@ export function DeckSelector({ onStartSession }: DeckSelectorProps) {
 
       {deckName && (
         <ProgressBar
-          studied={0}
-          total={dueCards.filter((c) => c.type !== 0).length}
+          studied={ratedToday}
+          total={ratedToday + dueCards.filter((c) => c.type !== 0).length}
           level={targetLevel}
         />
       )}
