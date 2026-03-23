@@ -231,9 +231,8 @@ def answer_card(req: AnswerRequest) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail=f"Card {req.card_id} not found")
 
         try:
-            col.reset()
             card.start_timer()
-            col.sched.answer_card(card, req.ease)
+            col.sched.answerCard(card, req.ease)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to answer card: {e}")
 
