@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { AnkiCard, AnkiEase, StoryWord } from "@/types";
 import { cardBack } from "@/types";
 
-const EASE_BUTTONS: { ease: AnkiEase; label: string; color: string }[] = [
-  { ease: 1, label: "Again", color: "bg-red-100 hover:bg-red-200 text-red-800" },
-  { ease: 2, label: "Hard", color: "bg-orange-100 hover:bg-orange-200 text-orange-800" },
-  { ease: 3, label: "Good", color: "bg-green-100 hover:bg-green-200 text-green-800" },
-  { ease: 4, label: "Easy", color: "bg-blue-100 hover:bg-blue-200 text-blue-800" },
+const EASE_BUTTONS: { ease: AnkiEase; label: string; selected: string; unselected: string }[] = [
+  { ease: 1, label: "Again", selected: "bg-red-400 text-white", unselected: "bg-red-100 hover:bg-red-200 text-red-800" },
+  { ease: 2, label: "Hard",  selected: "bg-orange-400 text-white", unselected: "bg-orange-100 hover:bg-orange-200 text-orange-800" },
+  { ease: 3, label: "Good",  selected: "bg-green-500 text-white", unselected: "bg-green-100 hover:bg-green-200 text-green-800" },
+  { ease: 4, label: "Easy",  selected: "bg-blue-400 text-white", unselected: "bg-blue-100 hover:bg-blue-200 text-blue-800" },
 ];
 
 interface FlashcardPopoverProps {
@@ -61,23 +61,19 @@ export function FlashcardPopover({
 
       <p className="text-sm text-gray-700 mb-3">{cardBack(card)}</p>
 
-      {rated ? (
-        <p className="text-xs text-green-600 text-center">
-          Rated: {EASE_BUTTONS.find((b) => b.ease === rated)?.label}
-        </p>
-      ) : (
-        <div className="grid grid-cols-4 gap-1">
-          {EASE_BUTTONS.map(({ ease, label, color }) => (
-            <button
-              key={ease}
-              onClick={() => onRate(ease)}
-              className={`text-xs py-1 px-1 rounded font-medium transition-colors ${color}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-4 gap-1">
+        {EASE_BUTTONS.map(({ ease, label, selected, unselected }) => (
+          <button
+            key={ease}
+            onClick={() => onRate(ease)}
+            className={`text-xs py-1 px-1 rounded font-medium transition-colors ${
+              rated === ease ? selected : unselected
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
