@@ -1,5 +1,6 @@
 import type { AnkiCard, GeneratedStory, StoryWord } from "@/types";
 import { cardFront } from "@/types";
+import { lemmatizeBatch } from "./anki-service-client";
 
 interface RawFlashcardPosition {
   noteId: number;
@@ -209,4 +210,44 @@ export function parseStory(rawText: string, cards: AnkiCard[]): GeneratedStory {
     words,
     flashcardWordIndices,
   };
+}
+
+/**
+ * Enrich all story tokens with base forms from kiwipiepy.
+ * Words that already have a baseForm (from Claude's flashcard positions)
+ * are preserved; all others get lemmatized.
+ */
+export async function enrichStoryWithLemmas(
+  generatedStory: GeneratedStory,
+): Promise<GeneratedStory> {
+  const wordsToLemmatize = generatedStory.words
+    .filter((w) => w.baseForm === null && w.text.length > 0);
+
+  if (wordsToLemmatize.length === 0) return generatedStory;
+
+  try {
+    const results = await lemmatizeBatch(
+      wordsToLemmatize.map((w) => w.text),
+      generatedStory.story,
+    );
+
+    const lemmaByWord = new Map<string, string>();
+    for (const r of results) {
+      lemmaByWord.set(r.word, r.baseForm);
+    }
+
+    const enrichedWords = generatedStory.words.map((w) => {
+      if (w.baseForm !== null) return w;
+      const lemma = lemmaByWord.get(w.text);
+      if (lemma && lemma !== w.text) {
+        return { ...w, baseForm: lemma };
+      }
+      return w;
+    });
+
+    return { ...generatedStory, words: enrichedWords };
+  } catch {
+    // Non-fatal — return story without enrichment if service is unavailable
+    return generatedStory;
+  }
 }

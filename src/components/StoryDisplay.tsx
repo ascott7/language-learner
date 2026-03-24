@@ -6,6 +6,7 @@ import { cardFront } from "@/types";
 import { useSessionStore, selectAllWordsRated, selectEarlyReviewCount, selectNewWordsCount, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
 import { WordToken } from "./WordToken";
 import { TranslationPanel } from "./TranslationPanel";
+import { stripKoreanParticles } from "@/lib/korean-utils";
 
 interface StoryDisplayProps {
   story: GeneratedStory;
@@ -98,10 +99,12 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
       }
 
       // Check for review-soon match (only for non-flashcard words, first occurrence)
+      // Use baseForm from kiwipiepy when available, fall back to particle stripping
       let reviewSoonCard: AnkiCard | null = null;
-      if (!card && !seenReviewSoonTexts.has(word.text)) {
-        reviewSoonCard = reviewSoonByText.get(word.text) ?? null;
-        if (reviewSoonCard) seenReviewSoonTexts.add(word.text);
+      const lemma = word.baseForm ?? stripKoreanParticles(word.text);
+      if (!card && !seenReviewSoonTexts.has(lemma)) {
+        reviewSoonCard = reviewSoonByText.get(lemma) ?? reviewSoonByText.get(word.text) ?? null;
+        if (reviewSoonCard) seenReviewSoonTexts.add(lemma);
       }
 
       const sentence = sentenceFor.get(word.index) ?? story.story;

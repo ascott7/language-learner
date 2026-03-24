@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateStory } from "@/lib/claude-client";
+import { enrichStoryWithLemmas } from "@/lib/story-parser";
 import type { GenerateStoryRequest } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -14,7 +15,8 @@ export async function POST(req: NextRequest) {
     }
 
     const story = await generateStory(cards, language, level);
-    return NextResponse.json(story);
+    const enriched = await enrichStoryWithLemmas(story);
+    return NextResponse.json(enriched);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Story generation failed";
     console.error("POST /api/story/generate error:", err);
