@@ -73,6 +73,9 @@ export async function lookupWord(
   language: string,
 ): Promise<{ baseForm: string; definition: string }> {
   const { baseForm } = await analyzeWord(word, sentence);
+  if (!language) {
+    return { baseForm, definition: "" };
+  }
   const definition = await translateText(baseForm, language, "en");
   return { baseForm, definition };
 }

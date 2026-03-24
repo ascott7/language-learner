@@ -67,6 +67,8 @@ export async function POST(req: NextRequest) {
     if (err instanceof AnkiServiceError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+    console.error("POST /api/anki/add-note error:", err);
+    const message = err instanceof Error ? err.message : "Unexpected error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

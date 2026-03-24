@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AnkiCard, AnkiEase, StoryWord } from "@/types";
-import { cardBack } from "@/types";
+import { cardBack, cardFront } from "@/types";
 
 const EASE_BUTTONS: { ease: AnkiEase; label: string; selected: string; unselected: string }[] = [
   { ease: 1, label: "Again", selected: "bg-red-400 text-white", unselected: "bg-red-100 hover:bg-red-200 text-red-800" },
@@ -49,9 +49,12 @@ export function FlashcardPopover({
       <div className="flex justify-between items-start mb-2">
         <div>
           <p className="font-semibold text-gray-900">{word.text}</p>
-          {word.baseForm && word.baseForm !== word.text && (
-            <p className="text-xs text-gray-500">base: {word.baseForm}</p>
-          )}
+          {(() => {
+            const front = cardFront(card).replace(/<[^>]+>/g, "").trim();
+            return front && front !== word.text ? (
+              <p className="text-xs text-gray-500">{front}</p>
+            ) : null;
+          })()}
         </div>
         <button
           onClick={onClose}
