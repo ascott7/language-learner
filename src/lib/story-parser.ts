@@ -1,4 +1,5 @@
 import type { AnkiCard, GeneratedStory, StoryWord } from "@/types";
+import { cardFront } from "@/types";
 
 interface RawFlashcardPosition {
   noteId: number;
@@ -126,10 +127,34 @@ export function parseStory(rawText: string, cards: AnkiCard[]): GeneratedStory {
     throw new Error("Claude response missing required fields (title, story)");
   }
 
-  // Build noteId → cardId map for cross-referencing
-  const noteIdToCardId = new Map<number, number>(
-    cards.map((c) => [c.noteId, c.cardId]),
-  );
+  // Build noteId → card map for cross-referencing
+  const cardByNoteId = new Map<number, AnkiCard>(cards.map((c) => [c.noteId, c]));
+
+  // Build normalised front-text → noteId map for re-matching misassigned noteIds
+  const noteIdByFront = new Map<string, number>();
+  for (const c of cards) {
+    const front = cardFront(c).replace(/<[^>]+>/g, "").trim();
+    noteIdByFront.set(normalize(front), c.noteId);
+  }
+
+  // Validate and correct noteId assignments: Claude sometimes uses the right word
+  // but assigns the wrong noteId (e.g. writes 하품하다 but tags it with the noteId
+  // for 유혹하다). Re-match by comparing the reported baseForm against card fronts.
+  const correctedPositions = (flashcardPositions ?? []).map((pos) => {
+    const card = cardByNoteId.get(pos.noteId);
+    if (!card) return pos;
+    const cardFrontText = cardFront(card).replace(/<[^>]+>/g, "").trim();
+    if (normalize(cardFrontText) === normalize(pos.baseForm)) return pos; // looks correct
+
+    // noteId doesn't match baseForm — find the card whose front does match
+    const correctNoteId = noteIdByFront.get(normalize(pos.baseForm));
+    if (correctNoteId !== undefined) {
+      return { ...pos, noteId: correctNoteId };
+    }
+    // Can't find a match — drop by returning a noteId not in our card map
+    // (the !noteIdToCardId.has(noteId) check below will filter it out)
+    return pos;
+  });
 
   // Verify and correct each flashcard position
   const verified: Array<{
@@ -140,10 +165,10 @@ export function parseStory(rawText: string, cards: AnkiCard[]): GeneratedStory {
     baseForm: string;
   }> = [];
 
-  for (const pos of flashcardPositions ?? []) {
+  for (const pos of correctedPositions) {
     const { noteId, surfaceForm, baseForm, start } = pos;
 
-    if (!surfaceForm || !noteIdToCardId.has(noteId)) continue;
+    if (!surfaceForm || !cardByNoteId.has(noteId)) continue;
 
     // Check if Claude's reported position is correct
     const reportedSlice = story.substring(pos.start, pos.end);
