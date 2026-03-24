@@ -4,7 +4,7 @@
 import { analyzeWord } from "./anki-service-client";
 
 const GOOGLE_TRANSLATE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY ?? "";
-const GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translation/v2";
+const GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2";
 
 /** Map human-readable language names to ISO 639-1 codes. */
 const LANGUAGE_CODES: Record<string, string> = {
