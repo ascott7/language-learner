@@ -27,8 +27,13 @@ from anki.notes import Note
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from kiwipiepy import Kiwi
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize Korean morphological analyzer once at module level
+kiwi = Kiwi()
 
 ANKI_DB_PATH = os.environ.get("ANKI_DB_PATH", "/data/collection.anki2")
 ANKIWEB_USERNAME = os.environ.get("ANKIWEB_USERNAME", "")
@@ -151,6 +156,16 @@ class AddNoteRequest(BaseModel):
 
 class FindNotesRequest(BaseModel):
     query: str
+
+
+class AnalyzeWordRequest(BaseModel):
+    word: str
+    sentence: str
+
+
+class LemmatizeBatchRequest(BaseModel):
+    words: list[str]
+    sentence: str
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -302,6 +317,73 @@ def find_notes(req: FindNotesRequest) -> dict[str, Any]:
             except Exception:
                 continue
         return {"exists": len(note_ids) > 0, "notes": notes}
+
+
+# ─── Morphological Analysis ──────────────────────────────────────────────────
+
+# POS tags for content morphemes (nouns, verbs, adjectives, adverbs)
+_CONTENT_POS = {"NNG", "NNP", "NNB", "NR", "NP", "VV", "VA", "VX", "VCP", "VCN", "MAG", "MAJ"}
+# POS tags for verb/adjective stems that need 다 appended
+_VERB_ADJ_POS = {"VV", "VA", "VX", "VCP", "VCN"}
+
+
+def _extract_base_form(word: str, sentence: str) -> tuple[str, str]:
+    """Extract the dictionary base form and POS from a Korean word in context.
+
+    Returns (base_form, pos_tag).
+    """
+    result = kiwi.analyze(sentence)
+    if not result:
+        return word, "UNKNOWN"
+
+    # Find morphemes that overlap with the target word position
+    # First, find where the word appears in the sentence
+    word_start = sentence.find(word)
+    if word_start == -1:
+        # Fallback: analyze the word alone
+        result = kiwi.analyze(word)
+        if not result:
+            return word, "UNKNOWN"
+        tokens = result[0][0]  # first analysis, token list
+    else:
+        word_end = word_start + len(word)
+        tokens = [
+            tok for tok in result[0][0]
+            if tok.start < word_end and tok.end > word_start
+        ]
+
+    if not tokens:
+        return word, "UNKNOWN"
+
+    # Find the first content morpheme
+    for tok in tokens:
+        if tok.tag in _CONTENT_POS:
+            base = tok.form
+            if tok.tag in _VERB_ADJ_POS:
+                base += "다"
+            return base, tok.tag
+
+    # No content morpheme found — return the first morpheme's form
+    tok = tokens[0]
+    base = tok.form
+    if tok.tag in _VERB_ADJ_POS:
+        base += "다"
+    return base, tok.tag
+
+
+@app.post("/analyze-word")
+def analyze_word(req: AnalyzeWordRequest) -> dict[str, str]:
+    base_form, pos = _extract_base_form(req.word, req.sentence)
+    return {"base_form": base_form, "pos": pos}
+
+
+@app.post("/lemmatize-batch")
+def lemmatize_batch(req: LemmatizeBatchRequest) -> dict[str, Any]:
+    results = []
+    for word in req.words:
+        base_form, _ = _extract_base_form(word, req.sentence)
+        results.append({"word": word, "base_form": base_form})
+    return {"results": results}
 
 
 @app.post("/sync")

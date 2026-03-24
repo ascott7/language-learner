@@ -104,4 +104,26 @@ export async function syncCollection(): Promise<{ success: boolean; action: stri
   return request("/sync", { method: "POST" });
 }
 
+export async function analyzeWord(
+  word: string,
+  sentence: string,
+): Promise<{ baseForm: string; pos: string }> {
+  const data = await request<{ base_form: string; pos: string }>("/analyze-word", {
+    method: "POST",
+    body: JSON.stringify({ word, sentence }),
+  });
+  return { baseForm: data.base_form, pos: data.pos };
+}
+
+export async function lemmatizeBatch(
+  words: string[],
+  sentence: string,
+): Promise<Array<{ word: string; baseForm: string }>> {
+  const data = await request<{ results: Array<{ word: string; base_form: string }> }>("/lemmatize-batch", {
+    method: "POST",
+    body: JSON.stringify({ words, sentence }),
+  });
+  return data.results.map((r) => ({ word: r.word, baseForm: r.base_form }));
+}
+
 export { AnkiServiceError };
