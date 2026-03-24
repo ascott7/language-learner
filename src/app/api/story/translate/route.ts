@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { translateStory } from "@/lib/claude-client";
+import { translateText } from "@/lib/translation-client";
 import type { TranslateRequest } from "@/types";
 
 export async function POST(req: NextRequest) {
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const translation = await translateStory(story, sourceLanguage);
+    const translation = await translateText(story, sourceLanguage, "en");
     return NextResponse.json({ translation });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Translation failed";

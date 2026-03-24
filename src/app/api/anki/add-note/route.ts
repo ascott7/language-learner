@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addNote, findNotes, AnkiServiceError } from "@/lib/anki-service-client";
-import { getLookupDefinition } from "@/lib/claude-client";
+import { lookupWord } from "@/lib/translation-client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
-      const lookup = await getLookupDefinition(word, sentence, language ?? "");
+      const lookup = await lookupWord(word, sentence, language ?? "");
 
       // Check if a note with this base form already exists in the collection
       let existingNote: { front: string; back: string } | null = null;
