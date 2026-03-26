@@ -151,7 +151,10 @@ function SessionRow({ session }: { session: SessionRecord }) {
   const total = session.totalFlashcardWords;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
+    <Link
+      href={`/progress/${session.id}`}
+      className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
+    >
       <div className="flex justify-between items-start mb-1">
         <p className="font-medium text-gray-900 text-sm truncate flex-1 mr-2">
           {session.storyTitle}
@@ -189,7 +192,7 @@ function SessionRow({ session }: { session: SessionRecord }) {
           </>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 

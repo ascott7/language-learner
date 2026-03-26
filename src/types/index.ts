@@ -101,6 +101,14 @@ export interface SessionRecord {
   difficultyFeedback: DifficultyFeedback | null;
 }
 
+export interface SessionDetail extends SessionRecord {
+  storyText: string;
+  storyWords: StoryWord[] | null;
+  flashcardWordIndices: number[] | null;
+  wordRatings: WordRating[] | null;
+  newWords: NewWordEntry[] | null;
+}
+
 export interface LevelHistoryEntry {
   id: number;
   deckName: string;

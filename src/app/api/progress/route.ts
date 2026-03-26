@@ -63,6 +63,10 @@ export async function POST(req: NextRequest) {
       ratingBreakdown: { again: number; hard: number; good: number; easy: number };
       newWordsAdded: number;
       difficultyFeedback?: string;
+      storyWords?: unknown[];
+      flashcardWordIndices?: number[];
+      wordRatings?: unknown[];
+      newWords?: unknown[];
     };
 
     await db.insert(sessions).values({
@@ -75,6 +79,10 @@ export async function POST(req: NextRequest) {
       ratingBreakdown: JSON.stringify(body.ratingBreakdown),
       newWordsAdded: body.newWordsAdded,
       difficultyFeedback: body.difficultyFeedback ?? null,
+      storyWords: body.storyWords ? JSON.stringify(body.storyWords) : null,
+      flashcardWordIndices: body.flashcardWordIndices ? JSON.stringify(body.flashcardWordIndices) : null,
+      wordRatings: body.wordRatings ? JSON.stringify(body.wordRatings) : null,
+      newWords: body.newWords ? JSON.stringify(body.newWords) : null,
     });
 
     return NextResponse.json({ success: true });

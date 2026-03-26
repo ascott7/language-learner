@@ -30,6 +30,7 @@ export default function SessionPage() {
   const generationError = useSessionStore((s) => s.generationError);
   const difficultyFeedback = useSessionStore((s) => s.difficultyFeedback);
   const newWords = useSessionStore((s) => s.newWords);
+  const wordRatings = useSessionStore((s) => s.wordRatings);
   const reset = useSessionStore((s) => s.reset);
   const breakdown = useSessionStore(useShallow(selectRatingBreakdown));
 
@@ -114,7 +115,7 @@ export default function SessionPage() {
       const feedbackData = (await feedbackRes.json()) as { newLevel: number };
       setNewLevel(feedbackData.newLevel);
 
-      // Save session record
+      // Save session record (includes per-word detail for session review)
       await fetch("/api/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,6 +129,10 @@ export default function SessionPage() {
           ratingBreakdown: breakdown,
           newWordsAdded: confirmedNewWords.length,
           difficultyFeedback,
+          storyWords: story.words,
+          flashcardWordIndices: story.flashcardWordIndices,
+          wordRatings: Object.values(wordRatings),
+          newWords: confirmedNewWords,
         }),
       });
 
