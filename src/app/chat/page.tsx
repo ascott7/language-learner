@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useChatStore } from "@/stores/chat-store";
 import { useSessionStore } from "@/stores/session-store";
 import { GrammarBreakdown } from "@/components/grammar/GrammarBreakdown";
-import { PageHeader } from "@/components/layout";
 import { Button } from "@/components/ui";
 
 const STARTER_PROMPTS = [

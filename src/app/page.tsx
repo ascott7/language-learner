@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSessionStore } from "@/stores/session-store";
 import { Card } from "@/components/ui";
-import { PageHeader } from "@/components/layout";
 import type { SessionRecord } from "@/types";
 
 interface ProgressData {
