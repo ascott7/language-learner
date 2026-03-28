@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from contextlib import asynccontextmanager, contextmanager
 from typing import Any, Generator
 
@@ -26,6 +27,10 @@ from anki.cards import Card
 from anki.notes import Note
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+
+# Serialize all Anki collection access — SQLite allows only one writer/opener
+# at a time, so concurrent requests would otherwise race and get 503 errors.
+_collection_lock = threading.Lock()
 
 from kiwipiepy import Kiwi
 
@@ -112,27 +117,32 @@ app = FastAPI(title="Anki Service", lifespan=lifespan)
 
 @contextmanager
 def open_collection() -> Generator[Collection, None, None]:
-    """Open the Anki collection as a context manager, closing it on exit."""
+    """Open the Anki collection as a context manager, closing it on exit.
+
+    Uses a process-wide lock to prevent concurrent access — the Anki SQLite
+    collection can only be opened by one caller at a time.
+    """
     if not os.path.exists(ANKI_DB_PATH):
         raise HTTPException(
             status_code=503,
             detail=f"Anki collection not found at {ANKI_DB_PATH}. "
             "The service may still be syncing — try again in a moment.",
         )
-    try:
-        col = Collection(ANKI_DB_PATH)
-    except Exception as e:
-        msg = str(e)
-        if "already open" in msg or "media currently syncing" in msg:
-            raise HTTPException(
-                status_code=503,
-                detail="Anki collection is locked. If Anki desktop is open, close it.",
-            )
-        raise HTTPException(status_code=500, detail=f"Failed to open collection: {msg}")
-    try:
-        yield col
-    finally:
-        col.close()
+    with _collection_lock:
+        try:
+            col = Collection(ANKI_DB_PATH)
+        except Exception as e:
+            msg = str(e)
+            if "already open" in msg or "media currently syncing" in msg:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Anki collection is locked. If Anki desktop is open, close it.",
+                )
+            raise HTTPException(status_code=500, detail=f"Failed to open collection: {msg}")
+        try:
+            yield col
+        finally:
+            col.close()
 
 
 # ─── Request / Response Models ────────────────────────────────────────────────
