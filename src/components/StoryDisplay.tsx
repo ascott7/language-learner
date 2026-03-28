@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { AnkiCard, GeneratedStory } from "@/types";
 import { cardFront } from "@/types";
 import { useSessionStore, selectAllWordsRated, selectEarlyReviewCount, selectNewWordsCount, selectRatedCount, selectTotalFlashcardWords } from "@/stores/session-store";
 import { WordToken } from "./WordToken";
 import { TranslationPanel } from "./TranslationPanel";
+import { GrammarBreakdown } from "./grammar/GrammarBreakdown";
 import { stripKoreanParticles } from "@/lib/korean-utils";
 
 interface StoryDisplayProps {
@@ -14,6 +15,7 @@ interface StoryDisplayProps {
 }
 
 export function StoryDisplay({ story, cards }: StoryDisplayProps) {
+  const [grammarSentence, setGrammarSentence] = useState<string | null>(null);
   const setPhase = useSessionStore((s) => s.setPhase);
   const showTranslation = useSessionStore((s) => s.showTranslation);
   const toggleTranslation = useSessionStore((s) => s.toggleTranslation);
@@ -157,14 +159,19 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
     return paragraphs;
   }, [renderedTokens]);
 
+  // Get sentences from the story for grammar analysis
+  const sentences = useMemo(() => {
+    return story.story.split(/(?<=[.!?。！？])\s+/).filter(Boolean);
+  }, [story.story]);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">{story.title}</h1>
-      <p className="text-xs text-gray-400 mb-6">Grade level: {story.gradeLevel}</p>
+      <h1 className="text-2xl font-bold text-stone-900 mb-1">{story.title}</h1>
+      <p className="text-xs text-stone-400 mb-6">Grade level: {story.gradeLevel}</p>
 
       {/* Progress indicator */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-stone-500">
           {ratedCount}/{totalFlashcardWords} words rated
           {newWordsCount > 0 && (
             <span className="ml-3 text-amber-600">
@@ -172,7 +179,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
             </span>
           )}
           {earlyReviewCount > 0 && (
-            <span className="ml-3 text-violet-600">
+            <span className="ml-3 text-brand-600">
               · {earlyReviewCount} early {earlyReviewCount === 1 ? "review" : "reviews"}
             </span>
           )}
@@ -180,7 +187,7 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
         <div className="flex gap-2">
           <button
             onClick={toggleTranslation}
-            className="text-sm text-indigo-600 hover:text-indigo-800 underline"
+            className="text-sm text-brand-600 hover:text-brand-700 underline"
           >
             {showTranslation ? "Hide translation" : "Show translation"}
           </button>
@@ -196,17 +203,40 @@ export function StoryDisplay({ story, cards }: StoryDisplayProps) {
         ))}
       </div>
 
+      {/* Grammar sentence picker */}
+      <div className="mt-6 border-t border-stone-200 pt-4">
+        <p className="text-xs text-stone-400 mb-2">Analyze a sentence for grammar:</p>
+        <div className="flex flex-wrap gap-2">
+          {sentences.slice(0, 6).map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setGrammarSentence(s.trim())}
+              className="text-xs px-3 py-1.5 bg-stone-100 hover:bg-brand-50 hover:text-brand-700 text-stone-600 rounded-lg transition-colors font-korean"
+            >
+              {s.trim().slice(0, 30)}{s.trim().length > 30 ? "…" : ""}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {showTranslation && <TranslationPanel story={story.story} language={story.language} />}
 
       <div className="mt-8 flex justify-end">
         <button
           onClick={() => setPhase("feedback")}
           disabled={!allRated}
-          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
+          className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
         >
           {allRated ? "Finish" : `Rate all words to continue (${ratedCount}/${totalFlashcardWords})`}
         </button>
       </div>
+
+      {/* Grammar Breakdown panel */}
+      <GrammarBreakdown
+        sentence={grammarSentence ?? ""}
+        open={grammarSentence !== null}
+        onClose={() => setGrammarSentence(null)}
+      />
     </div>
   );
 }

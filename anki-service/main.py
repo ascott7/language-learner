@@ -386,6 +386,168 @@ def lemmatize_batch(req: LemmatizeBatchRequest) -> dict[str, Any]:
     return {"results": results}
 
 
+class AnalyzeSentenceRequest(BaseModel):
+    sentence: str
+
+
+# Human-readable labels for kiwipiepy POS tags
+_POS_LABELS: dict[str, dict[str, str]] = {
+    "NNG": {"en": "Noun", "ko": "일반명사", "color": "sky"},
+    "NNP": {"en": "Proper noun", "ko": "고유명사", "color": "sky"},
+    "NNB": {"en": "Bound noun", "ko": "의존명사", "color": "sky"},
+    "NR":  {"en": "Number", "ko": "수사", "color": "sky"},
+    "NP":  {"en": "Pronoun", "ko": "대명사", "color": "sky"},
+    "VV":  {"en": "Verb", "ko": "동사", "color": "brand"},
+    "VA":  {"en": "Adjective", "ko": "형용사", "color": "violet"},
+    "VX":  {"en": "Auxiliary verb", "ko": "보조동사", "color": "brand"},
+    "VCP": {"en": "Copula (이다)", "ko": "긍정지정사", "color": "brand"},
+    "VCN": {"en": "Negative copula (아니다)", "ko": "부정지정사", "color": "brand"},
+    "MAG": {"en": "Adverb", "ko": "일반부사", "color": "amber"},
+    "MAJ": {"en": "Conjunctive adverb", "ko": "접속부사", "color": "amber"},
+    "MM":  {"en": "Modifier", "ko": "관형사", "color": "amber"},
+    "IC":  {"en": "Exclamation", "ko": "감탄사", "color": "stone"},
+    "JKS": {"en": "Subject marker", "ko": "주격조사", "color": "teal"},
+    "JKC": {"en": "Complement marker", "ko": "보격조사", "color": "teal"},
+    "JKG": {"en": "Genitive marker", "ko": "관형격조사", "color": "teal"},
+    "JKO": {"en": "Object marker", "ko": "목적격조사", "color": "teal"},
+    "JKB": {"en": "Location/direction", "ko": "부사격조사", "color": "teal"},
+    "JKV": {"en": "Vocative marker", "ko": "호격조사", "color": "teal"},
+    "JKQ": {"en": "Quotation marker", "ko": "인용격조사", "color": "teal"},
+    "JX":  {"en": "Auxiliary particle", "ko": "보조사", "color": "teal"},
+    "JC":  {"en": "Conjunction", "ko": "접속조사", "color": "teal"},
+    "EP":  {"en": "Pre-final ending", "ko": "선어말어미", "color": "rose"},
+    "EF":  {"en": "Final ending", "ko": "종결어미", "color": "rose"},
+    "EC":  {"en": "Connective ending", "ko": "연결어미", "color": "rose"},
+    "ETN": {"en": "Nominalization", "ko": "명사형전성어미", "color": "rose"},
+    "ETM": {"en": "Modifier ending", "ko": "관형형전성어미", "color": "rose"},
+    "XPN": {"en": "Prefix", "ko": "체언접두사", "color": "stone"},
+    "XSN": {"en": "Noun suffix", "ko": "명사파생접미사", "color": "stone"},
+    "XSV": {"en": "Verb suffix", "ko": "동사파생접미사", "color": "stone"},
+    "XSA": {"en": "Adjective suffix", "ko": "형용사파생접미사", "color": "stone"},
+    "XR":  {"en": "Root", "ko": "어근", "color": "stone"},
+    "SF":  {"en": "Sentence end", "ko": "마침표", "color": "stone"},
+    "SP":  {"en": "Comma/period", "ko": "쉼표", "color": "stone"},
+    "SS":  {"en": "Quotation mark", "ko": "따옴표", "color": "stone"},
+    "SE":  {"en": "Ellipsis", "ko": "줄임표", "color": "stone"},
+    "SO":  {"en": "Other symbol", "ko": "기타기호", "color": "stone"},
+    "SW":  {"en": "Foreign/special", "ko": "외래/특수", "color": "stone"},
+    "SB":  {"en": "Bullet", "ko": "불릿", "color": "stone"},
+    "SL":  {"en": "Foreign word", "ko": "외국어", "color": "stone"},
+    "SH":  {"en": "Chinese character", "ko": "한자", "color": "stone"},
+    "SN":  {"en": "Number", "ko": "숫자", "color": "stone"},
+    "UNKNOWN": {"en": "Unknown", "ko": "미상", "color": "stone"},
+}
+
+
+@app.post("/analyze-sentence")
+def analyze_sentence(req: AnalyzeSentenceRequest) -> dict[str, Any]:
+    """Full morphological analysis of a Korean sentence via kiwipiepy."""
+    sentence = req.sentence.strip()
+    if not sentence:
+        return {"morphemes": [], "sentence": sentence}
+
+    result = kiwi.analyze(sentence)
+    if not result:
+        return {"morphemes": [], "sentence": sentence}
+
+    tokens = result[0][0]
+    morphemes = []
+    for tok in tokens:
+        tag_str = str(tok.tag).replace("Tag.", "") if hasattr(tok.tag, "name") else str(tok.tag)
+        # kiwipiepy may return tag as e.g. "Tag.NNG" or just "NNG"
+        if "." in tag_str:
+            tag_str = tag_str.split(".")[-1]
+        label = _POS_LABELS.get(tag_str, {"en": tag_str, "ko": tag_str, "color": "stone"})
+
+        # For verbs/adjectives, construct dictionary form
+        base = tok.form
+        if tag_str in _VERB_ADJ_POS:
+            base = tok.form + "다"
+
+        morphemes.append({
+            "form": tok.form,
+            "base": base,
+            "tag": tag_str,
+            "label_en": label["en"],
+            "label_ko": label["ko"],
+            "color": label["color"],
+            "start": tok.start,
+            "end": tok.end,
+        })
+
+    return {"morphemes": morphemes, "sentence": sentence}
+
+
+@app.post("/deck-vocab-check")
+def deck_vocab_check(req: dict) -> dict[str, Any]:
+    """Check which words from a list exist in an Anki deck, categorized by review timing."""
+    words: list[str] = req.get("words", [])
+    deck_name: str = req.get("deck_name", "")
+    if not words or not deck_name:
+        return {"known": [], "review_soon": [], "unknown": list(words)}
+
+    with open_collection() as col:
+        deck = col.decks.by_name(deck_name)
+        if deck is None:
+            return {"known": [], "review_soon": [], "unknown": list(words)}
+
+        today = col.sched.today
+        known = []
+        review_soon = []
+        unknown = []
+
+        for word in words:
+            # Search for notes containing this word
+            note_ids = col.find_notes(f'deck:"{deck_name}" ({word})')
+            if not note_ids:
+                unknown.append(word)
+                continue
+
+            # Check due timing
+            card_ids = col.find_cards(f'deck:"{deck_name}" ({word})')
+            is_review_soon = False
+            is_known = False
+            for cid in list(card_ids)[:5]:
+                try:
+                    card = col.get_card(cid)
+                    if card.type == 2:  # review card
+                        is_known = True
+                        if card.due <= today + 7:
+                            is_review_soon = True
+                            break
+                except Exception:
+                    continue
+
+            if is_review_soon:
+                review_soon.append(word)
+            elif is_known:
+                known.append(word)
+            else:
+                unknown.append(word)
+
+        return {"known": known, "review_soon": review_soon, "unknown": unknown}
+
+
+@app.get("/all-cards")
+def all_cards(deck_name: str) -> dict[str, Any]:
+    """Return all cards in a deck (not just due), with full field + scheduling info."""
+    with open_collection() as col:
+        deck = col.decks.by_name(deck_name)
+        if deck is None:
+            raise HTTPException(status_code=404, detail=f"Deck '{deck_name}' not found")
+
+        card_ids = col.find_cards(f'deck:"{deck_name}"')
+        cards = []
+        for card_id in list(card_ids):
+            try:
+                card = col.get_card(card_id)
+                cards.append(card_to_dict(col, card))
+            except Exception:
+                continue
+
+        return {"cards": cards, "total": len(cards)}
+
+
 @app.post("/sync")
 def sync_endpoint() -> dict[str, Any]:
     """Sync with AnkiWeb using credentials from environment variables."""
