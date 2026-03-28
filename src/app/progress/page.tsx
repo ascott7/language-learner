@@ -41,18 +41,18 @@ export default function ProgressPage() {
     }, 0) ?? 0;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-stone-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Progress</h1>
-          <Link href="/" className="text-sm text-indigo-600 hover:text-indigo-800">
+          <Link href="/" className="text-sm text-brand-600 hover:text-brand-700">
             ← Back
           </Link>
         </div>
 
         {loading && (
           <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
@@ -91,7 +91,7 @@ export default function ProgressPage() {
                     Level Progression
                   </h2>
                   {data.currentLevel !== null && (
-                    <span className="text-lg font-bold text-indigo-600">
+                    <span className="text-lg font-bold text-brand-600">
                       Current: {data.currentLevel}
                     </span>
                   )}
@@ -132,9 +132,9 @@ function StatCard({
   color: string;
 }) {
   const colorMap: Record<string, string> = {
-    indigo: "bg-indigo-50 text-indigo-700",
-    blue: "bg-blue-50 text-blue-700",
-    green: "bg-green-50 text-green-700",
+    indigo: "bg-brand-50 text-brand-700",
+    blue: "bg-sky-50 text-sky-700",
+    green: "bg-teal-50 text-teal-700",
   };
 
   return (
@@ -153,7 +153,7 @@ function SessionRow({ session }: { session: SessionRecord }) {
   return (
     <Link
       href={`/progress/${session.id}`}
-      className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
+      className="block bg-white border border-gray-200 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all"
     >
       <div className="flex justify-between items-start mb-1">
         <p className="font-medium text-gray-900 text-sm truncate flex-1 mr-2">
@@ -211,7 +211,7 @@ function MiniLevelChart({ history }: { history: LevelHistoryEntry[] }) {
           <div
             key={i}
             title={`Level ${entry.level}: ${entry.reason}`}
-            className="flex-1 bg-indigo-400 rounded-t opacity-80 hover:opacity-100 transition-opacity min-h-[4px]"
+            className="flex-1 bg-brand-500 rounded-t opacity-80 hover:opacity-100 transition-opacity min-h-[4px]"
             style={{ height: `${Math.max(4, heightPct)}%` }}
           />
         );
