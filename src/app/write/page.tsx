@@ -3,17 +3,70 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSessionStore } from "@/stores/session-store";
+import { useAppStore } from "@/stores/app-store";
 import { PageHeader } from "@/components/layout";
 import { Card, Button, ProgressRing } from "@/components/ui";
 import { cardFront, cardBack } from "@/types";
 import type { AnkiCard } from "@/types";
 import type { GradingResult } from "@/app/api/writing/grade/route";
 
-export default function WritePage() {
-  const deckName = useSessionStore((s) => s.deckName);
-  const language = useSessionStore((s) => s.language);
-  const dueCards = useSessionStore((s) => s.dueCards);
+function DeckPicker({ onSelect }: { onSelect: (deck: string) => void }) {
+  const [decks, setDecks] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetch("/api/anki/decks")
+      .then((r) => r.json())
+      .then((d) => { setDecks(d.decks ?? []); setLoading(false); })
+      .catch(() => { setErr("Could not load decks — is Anki service running?"); setLoading(false); });
+  }, []);
+
+  return (
+    <div className="max-w-md mx-auto px-6 py-20">
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center mx-auto mb-4 shadow-card-lg">
+          <span className="text-white text-2xl">✏️</span>
+        </div>
+        <h2 className="text-2xl font-display font-bold text-stone-900 mb-1">Sentence Writing</h2>
+        <p className="text-stone-400 text-sm">Choose a deck to start writing practice</p>
+      </div>
+      {loading && (
+        <div className="flex justify-center">
+          <div className="w-6 h-6 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      {err && <p className="text-rating-again text-sm text-center">{err}</p>}
+      {!loading && !err && (
+        <div className="space-y-2">
+          {decks.map((deck) => (
+            <button
+              key={deck}
+              onClick={() => onSelect(deck)}
+              className="w-full text-left px-4 py-3 bg-white border border-stone-200 rounded-xl hover:border-brand-400 hover:bg-brand-50 transition-all font-medium text-stone-800 text-sm"
+            >
+              {deck}
+            </button>
+          ))}
+          {decks.length === 0 && (
+            <p className="text-stone-400 text-sm text-center py-4">No decks found.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function WritePage() {
+  const sessionDeckName = useSessionStore((s) => s.deckName);
+  const setSessionDeckName = useSessionStore((s) => s.setDeckName);
+  const language = useSessionStore((s) => s.language);
+  const appDeckName = useAppStore((s) => s.selectedDeck);
+  const setAppDeck = useAppStore((s) => s.setSelectedDeck);
+  const deckName = sessionDeckName ?? appDeckName;
+
+  const [cards, setCards] = useState<AnkiCard[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(false);
   const [currentCard, setCurrentCard] = useState<AnkiCard | null>(null);
   const [sentence, setSentence] = useState("");
   const [isGrading, setIsGrading] = useState(false);
@@ -21,16 +74,34 @@ export default function WritePage() {
   const [error, setError] = useState<string | null>(null);
   const [exerciseCount, setExerciseCount] = useState(0);
 
-  function pickRandomCard(cards: AnkiCard[]) {
-    if (cards.length === 0) return null;
-    return cards[Math.floor(Math.random() * cards.length)];
+  function pickRandomCard(pool: AnkiCard[]) {
+    if (pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
+  function handleDeckSelect(deck: string) {
+    setSessionDeckName(deck);
+    setAppDeck(deck);
+  }
+
+  // Fetch due cards whenever deck changes
   useEffect(() => {
-    if (dueCards.length > 0 && !currentCard) {
-      setCurrentCard(pickRandomCard(dueCards));
-    }
-  }, [dueCards, currentCard]);
+    if (!deckName) return;
+    setCardsLoading(true);
+    fetch("/api/anki/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deckName }),
+    })
+      .then((r) => r.json())
+      .then((d: { cards?: AnkiCard[] }) => {
+        const fetched = d.cards ?? [];
+        setCards(fetched);
+        setCurrentCard(pickRandomCard(fetched));
+        setCardsLoading(false);
+      })
+      .catch(() => setCardsLoading(false));
+  }, [deckName]);
 
   async function handleSubmit() {
     if (!sentence.trim() || !currentCard || isGrading) return;
@@ -60,15 +131,27 @@ export default function WritePage() {
     setSentence("");
     setResult(null);
     setError(null);
-    setCurrentCard(pickRandomCard(dueCards));
+    setCurrentCard(pickRandomCard(cards));
   }
 
-  if (!deckName || dueCards.length === 0) {
+  if (!deckName) {
+    return <DeckPicker onSelect={handleDeckSelect} />;
+  }
+
+  if (cardsLoading) {
+    return (
+      <div className="max-w-lg mx-auto px-6 py-20 flex flex-col items-center gap-4">
+        <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-stone-500">Loading cards…</p>
+      </div>
+    );
+  }
+
+  if (cards.length === 0) {
     return (
       <div className="max-w-lg mx-auto px-6 py-20 text-center">
-        <p className="text-stone-500 mb-4">
-          {!deckName ? "Select a deck to start writing practice." : "No due cards in this deck."}
-        </p>
+        <div className="text-5xl mb-4">🎉</div>
+        <p className="text-stone-500">No due cards in <strong>{deckName}</strong> right now.</p>
       </div>
     );
   }
