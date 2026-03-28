@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #6C3AED;
+    --brand-light: #8B5CF6;
+    --brand-dark: #5B21B6;
+    --accent-amber: #F59E0B;
+    --accent-rose: #F43F5E;
+    --accent-teal: #14B8A6;
+    --accent-sky: #0EA5E9;
+    --surface: #FAFAF9;
+    --border: #E7E5E4;
+    --text-primary: #1C1917;
+    --text-secondary: #78716C;
+    --rating-again: #F43F5E;
+    --rating-hard: #F97316;
+    --rating-good: #0EA5E9;
+    --rating-easy: #14B8A6;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .font-korean {
+    font-family: "Pretendard Variable", "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+  }
+
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #6C3AED, #14B8A6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-brand {
+    background: linear-gradient(135deg, #6C3AED, #8B5CF6);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
