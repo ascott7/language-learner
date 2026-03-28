@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { AppShell } from "@/components/layout";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,7 +35,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-stone-50 text-stone-900 antialiased font-sans">
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
