@@ -13,6 +13,7 @@ interface SessionState {
   deckName: string | null;
   language: string;
   targetLevel: number;
+  cardsPerStory: number;
 
   // Card data
   dueCards: AnkiCard[];
@@ -41,6 +42,7 @@ interface SessionState {
   setDeckName: (name: string) => void;
   setLanguage: (lang: string) => void;
   setTargetLevel: (level: number) => void;
+  setCardsPerStory: (n: number) => void;
   setDueCards: (cards: AnkiCard[], todayDayNum?: number) => void;
   setSelectedCards: (cards: AnkiCard[]) => void;
   setStory: (story: GeneratedStory) => void;
@@ -61,6 +63,7 @@ const initialState = {
   deckName: null,
   language: "Korean",
   targetLevel: 3,
+  cardsPerStory: 10,
   dueCards: [],
   selectedCards: [],
   todayDayNum: 0,
@@ -83,6 +86,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   setDeckName: (name) => set({ deckName: name }),
   setLanguage: (lang) => set({ language: lang }),
   setTargetLevel: (level) => set({ targetLevel: level }),
+  setCardsPerStory: (n) => set({ cardsPerStory: n }),
   setDueCards: (cards, todayDayNum) =>
     set((s) => ({ dueCards: cards, todayDayNum: todayDayNum ?? s.todayDayNum })),
   setSelectedCards: (cards) => set({ selectedCards: cards }),

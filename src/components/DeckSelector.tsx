@@ -14,6 +14,8 @@ export function DeckSelector({ onStartSession }: DeckSelectorProps) {
   const dueCards = useSessionStore((s) => s.dueCards);
   const setDueCards = useSessionStore((s) => s.setDueCards);
   const targetLevel = useSessionStore((s) => s.targetLevel);
+  const cardsPerStory = useSessionStore((s) => s.cardsPerStory);
+  const setCardsPerStory = useSessionStore((s) => s.setCardsPerStory);
 
   const [loadingCards, setLoadingCards] = useState(false);
   const [ratedToday, setRatedToday] = useState(0);
@@ -51,6 +53,20 @@ export function DeckSelector({ onStartSession }: DeckSelectorProps) {
       )}
 
       <DeckPicker placeholder="Select a deck…" />
+
+      <div className="flex items-center gap-3">
+        <label className="text-sm text-stone-600 whitespace-nowrap">Vocab words</label>
+        <input
+          type="range"
+          min={3}
+          max={20}
+          step={1}
+          value={cardsPerStory}
+          onChange={(e) => setCardsPerStory(Number(e.target.value))}
+          className="flex-1 accent-indigo-600"
+        />
+        <span className="text-sm font-medium text-stone-800 w-6 text-right">{cardsPerStory}</span>
+      </div>
 
       {deckName && (
         <ProgressBar

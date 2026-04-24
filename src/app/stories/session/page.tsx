@@ -9,8 +9,6 @@ import { StoryFeedback } from "@/components/StoryFeedback";
 import { SessionSummary } from "@/components/SessionSummary";
 import type { GeneratedStory } from "@/types";
 
-const CARDS_PER_STORY = 10;
-
 export default function SessionPage() {
   const router = useRouter();
   const generateCalledRef = useRef(false);
@@ -20,6 +18,7 @@ export default function SessionPage() {
   const deckName = useSessionStore((s) => s.deckName);
   const language = useSessionStore((s) => s.language);
   const targetLevel = useSessionStore((s) => s.targetLevel);
+  const cardsPerStory = useSessionStore((s) => s.cardsPerStory);
   const dueCards = useSessionStore((s) => s.dueCards);
   const selectedCards = useSessionStore((s) => s.selectedCards);
   const setSelectedCards = useSessionStore((s) => s.setSelectedCards);
@@ -52,9 +51,9 @@ export default function SessionPage() {
     const reviewCards = dueCards.filter((c) => c.type === 2 || c.type === 1);
     const newCardsSlice = dueCards.filter((c) => c.type === 0);
     const selected = [
-      ...reviewCards.slice(0, CARDS_PER_STORY),
-      ...newCardsSlice.slice(0, Math.max(0, CARDS_PER_STORY - reviewCards.length)),
-    ].slice(0, CARDS_PER_STORY);
+      ...reviewCards.slice(0, cardsPerStory),
+      ...newCardsSlice.slice(0, Math.max(0, cardsPerStory - reviewCards.length)),
+    ].slice(0, cardsPerStory);
 
     setSelectedCards(selected);
     setIsGenerating(true);
@@ -83,6 +82,7 @@ export default function SessionPage() {
     dueCards,
     language,
     targetLevel,
+    cardsPerStory,
     setSelectedCards,
     setIsGenerating,
     setPhase,
