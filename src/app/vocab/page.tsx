@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSessionStore } from "@/stores/session-store";
 import { PageHeader } from "@/components/layout";
 import { Card, Badge, Skeleton } from "@/components/ui";
+import { DeckPicker } from "@/components/DeckPicker";
 import type { VocabWord, VocabStats, MasteryLevel } from "@/app/api/vocab/route";
 
 const MASTERY_CONFIG: Record<MasteryLevel, { label: string; color: string; badgeVariant: "default" | "info" | "warning" | "success" | "danger" | "brand" }> = {
@@ -69,8 +70,12 @@ export default function VocabPage() {
 
   if (!deckName) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-20 text-center">
-        <p className="text-stone-500">Select a deck to view vocabulary.</p>
+      <div className="max-w-md mx-auto px-6 py-20">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-display font-bold text-stone-900 mb-1">Vocabulary</h2>
+          <p className="text-stone-400 text-sm">Choose a deck to view your words</p>
+        </div>
+        <DeckPicker />
       </div>
     );
   }

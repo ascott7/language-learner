@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReviewStore } from "@/stores/review-store";
@@ -9,70 +9,17 @@ import { useAppStore } from "@/stores/app-store";
 import { RatingButtons } from "@/components/review/RatingButtons";
 import { PageHeader } from "@/components/layout";
 import { Card, Button } from "@/components/ui";
+import { DeckPicker } from "@/components/DeckPicker";
 import { cardFront, cardBack } from "@/types";
 import type { AnkiEase } from "@/types";
-
-function DeckPicker({ onSelect }: { onSelect: (deck: string) => void }) {
-  const [decks, setDecks] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/anki/decks")
-      .then((r) => r.json())
-      .then((d) => { setDecks(d.decks ?? []); setLoading(false); })
-      .catch(() => { setErr("Could not load decks — is Anki service running?"); setLoading(false); });
-  }, []);
-
-  return (
-    <div className="max-w-md mx-auto px-6 py-20">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center mx-auto mb-4 shadow-card-lg">
-          <span className="text-white text-2xl">🃏</span>
-        </div>
-        <h2 className="text-2xl font-display font-bold text-stone-900 mb-1">Flashcard Review</h2>
-        <p className="text-stone-400 text-sm">Choose a deck to start reviewing</p>
-      </div>
-      {loading && (
-        <div className="flex justify-center">
-          <div className="w-6 h-6 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-      {err && <p className="text-rating-again text-sm text-center">{err}</p>}
-      {!loading && !err && (
-        <div className="space-y-2">
-          {decks.map((deck) => (
-            <button
-              key={deck}
-              onClick={() => onSelect(deck)}
-              className="w-full text-left px-4 py-3 bg-white border border-stone-200 rounded-xl hover:border-brand-400 hover:bg-brand-50 transition-all font-medium text-stone-800 text-sm"
-            >
-              {deck}
-            </button>
-          ))}
-          {decks.length === 0 && (
-            <p className="text-stone-400 text-sm text-center py-4">No decks found.</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function ReviewPage() {
   const router = useRouter();
   const { queue, currentIndex, isFlipped, isLoading, isSubmitting, ratings, error, loadQueue, flipCard, rateCard, reset } = useReviewStore();
   const sessionDeckName = useSessionStore((s) => s.deckName);
-  const setSessionDeckName = useSessionStore((s) => s.setDeckName);
   const appDeckName = useAppStore((s) => s.selectedDeck);
-  const setAppDeck = useAppStore((s) => s.setSelectedDeck);
   const deckName = sessionDeckName ?? appDeckName;
   const loadedRef = useRef(false);
-
-  function handleDeckSelect(deck: string) {
-    setSessionDeckName(deck);
-    setAppDeck(deck);
-  }
 
   useEffect(() => {
     if (loadedRef.current || !deckName) return;
@@ -111,7 +58,18 @@ export default function ReviewPage() {
   }, [isFlipped, card, isSubmitting, flipCard, rateCard]);
 
   if (!deckName) {
-    return <DeckPicker onSelect={handleDeckSelect} />;
+    return (
+      <div className="max-w-md mx-auto px-6 py-20">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center mx-auto mb-4 shadow-card-lg">
+            <span className="text-white text-2xl">🃏</span>
+          </div>
+          <h2 className="text-2xl font-display font-bold text-stone-900 mb-1">Flashcard Review</h2>
+          <p className="text-stone-400 text-sm">Choose a deck to start reviewing</p>
+        </div>
+        <DeckPicker />
+      </div>
+    );
   }
 
   if (isLoading) {
